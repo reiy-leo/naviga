@@ -402,6 +402,26 @@ body {
     color: var(--text-secondary);
 }
 
+.folder-delete-btn {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-delete-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(239,68,68,0.08);
+}
+
 /* ── List View ── */
 .bookmarks-list { display: flex; flex-direction: column; gap: 4px; }
 
@@ -1043,11 +1063,10 @@ body.bg-warm { background: #0f0d0a; }
 /* ── Sub-bookmark Items (inline in list mode) ── */
 .bookmark-sub-items {
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: 6px;
-    margin-left: auto;
-    padding-left: 16px;
     flex-shrink: 0;
+    margin: 0 16px;
 }
 
 .bookmark-sub-item {
