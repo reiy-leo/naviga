@@ -80,6 +80,8 @@ const I18N = {
         refreshFavicon: '刷新图标',
         deleteFolder: '删除文件夹',
         deleteFolderConfirm: '确定删除文件夹「{name}」？其中的书签将移入父文件夹。',
+        newFolderPrompt: '请输入新文件夹名称：',
+        newSubFolder: '新建子文件夹',
     },
     'zh-TW': {
         settings: '設定',
@@ -142,6 +144,70 @@ const I18N = {
         refreshFavicon: '重新整理圖示',
         deleteFolder: '刪除資料夾',
         deleteFolderConfirm: '確定刪除資料夾「{name}」？其中的書籤將移入父資料夾。',
+        newFolderPrompt: '請輸入新資料夾名稱：',
+        newSubFolder: '新建子資料夾',
+    },
+    'en': {
+        appearance: '外觀',
+        light: '淺色',
+        dark: '深色',
+        system: '跟隨系統',
+        background: '背景',
+        bgDefault: '預設',
+        bgSubtle: '柔和',
+        bgDeep: '深邃',
+        bgBlueTint: '藍色調',
+        bgWarmTint: '暖色調',
+        clicksPerLevel: '每梯度點擊量',
+        cardDisplay: '工作區卡片顯示',
+        iconSize: '圖示大小',
+        small: '小',
+        medium: '中',
+        large: '大',
+        tabDisplay: '標籤頁顯示',
+        iconText: '圖示 + 文字',
+        iconOnly: '僅圖示',
+        textOnly: '僅文字',
+        wsAppearance: '工作區外觀',
+        importBookmarks: '匯入書籤',
+        importHint: '從 Chrome/Edge 書籤 JSON 檔案匯入 (workspaces_v2)',
+        chooseFile: '選擇檔案',
+        saveSettings: '儲存設定',
+        frequentlyAccessed: '常用存取',
+        workspaces: '工作區',
+        bookmarks: '個書籤',
+        clicks: '次點擊',
+        noBookmarks: '暫無書籤',
+        noBookmarksHint: '在瀏覽器中為此資料夾新增書籤',
+        editBookmark: '編輯書籤',
+        addBookmark: '新增書籤',
+        addSubBookmark: '新增子書籤',
+        editSubBookmark: '編輯子書籤',
+        title: '標題',
+        iconSource: '圖示來源',
+        iconValue: '圖示值',
+        favicon: '網站圖示',
+        emoji: 'Emoji',
+        lucideIcons: 'Lucide 圖示',
+        url: '網址',
+        cancel: '取消',
+        save: '儲存',
+        edit: '編輯',
+        delete: '刪除',
+        addSub: '新增子書籤',
+        general: '其他',
+        list: '清單',
+        grid: '格線',
+        smart: '智慧',
+        language: '語言',
+        langZhCN: '简体中文',
+        langZhTW: '繁體中文',
+        langEn: 'English',
+        langJa: '日本語',
+        refreshFavicon: '重新整理圖示',
+        deleteFolder: '刪除資料夾',
+        deleteFolderConfirm: '確定刪除資料夾「{name}」？其中的書籤將移入父資料夾。',
+        newFolderPrompt: '請輸入新資料夾名稱：',
     },
     'en': {
         settings: 'Settings',
@@ -204,6 +270,8 @@ const I18N = {
         refreshFavicon: 'Refresh Favicon',
         deleteFolder: 'Delete Folder',
         deleteFolderConfirm: 'Delete folder "{name}"? Its bookmarks will be moved to the parent folder.',
+        newFolderPrompt: 'Please enter new folder name:',
+        newSubFolder: 'New Sub-folder',
     },
     'ja': {
         settings: '設定',
@@ -262,6 +330,8 @@ const I18N = {
         langZhCN: '简体中文',
         langZhTW: '繁體中文',
         langEn: 'English',
+        newFolderPrompt: '新しいフォルダ名を入力してください：',
+        newSubFolder: '新しいサブフォルダ',
         langJa: '日本語',
     }
 };
@@ -274,6 +344,7 @@ function t(key) {
 // ── State ──
 let workspaces = {};       // { folderId: { id, name, folders: { folderName: [bookmarks] } } }
 let workspaceFolderIds = {};  // { wsId: { path: chromeBookmarkFolderId } }
+let workspaceRootIds = {};  // { wsId: chromeBookmarkFolderId }
 let currentWorkspace = 'all';
 let currentView = 'list';
 let folderViewModes = {};
@@ -365,6 +436,7 @@ async function refreshWorkspaces() {
                 folders: result.folders
             };
             workspaceFolderIds[folder.id] = result.folderIds;
+            workspaceRootIds[folder.id] = folder.id;
         });
 
     await saveStorage();
@@ -582,7 +654,7 @@ function renderBookmarkIcon(bm) {
     switch (bm.iconType) {
         case 'favicon':
             try { var d = new URL(bm.iconValue || bm.url).hostname; } catch(e) { var d = 'example.com'; }
-            return '<img src="https://www.google.com/s2/favicons?domain=' + d + '&sz=64">';
+            return '<img src="https://www.google.com/s2/favicons?domain=' + d + '&sz=64" onerror="this.style.display=\'none\';this.nextSibling&&this.nextSibling.remove&&this.nextSibling.remove();this.parentNode.innerHTML+=\'<span style=\\\'font-size:14px;font-weight:600;color:var(--text-tertiary);\\\\'>\' + (this.alt||\\'?\\') + '</span>\';">';
         case 'emoji':
             return '<span>' + (bm.iconValue || '') + '</span>';
         case 'icons8':
@@ -774,6 +846,7 @@ function renderWorkspaceView(container) {
         h += '<div class="folder-title" data-folder-path="' + fn + '" data-folder-id="' + folderId + '">' + titleHtml + '</div>';
         h += '<div class="folder-actions">';
         h += '<button class="folder-add-btn" data-folder-id="' + folderId + '" title="' + t('addBookmark') + '"><i data-lucide="plus" style="width:14px;height:14px;"></i></button>';
+        h += '<button class="folder-add-subfolder-btn" data-folder-id="' + folderId + '" title="' + t('newSubFolder') + '"><i data-lucide="folder-plus" style="width:14px;height:14px;"></i></button>';
         h += '<button class="folder-toggle" data-folder="' + fid + '" data-mode="' + mode + '"><i data-lucide="arrow-right-left" style="width:12px;height:12px;"></i> ' + (mode === 'list' ? t('grid') : mode === 'grid' ? t('smart') : t('list')) + '</button>';
         h += '<button class="folder-delete-btn" data-folder-id="' + folderId + '" data-workspace="' + currentWorkspace + '" data-folder-path="' + fn + '" title="' + t('deleteFolder') + '"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>';
         h += '</div>';
@@ -967,6 +1040,38 @@ function attachEventListeners() {
             folderViewModes[fid] = modes[(modes.indexOf(cur) + 1) % 3];
             saveStorage();
             render();
+        }
+    });
+
+    // New Folder button (workspace view)
+    document.getElementById('newFolderBtn').addEventListener('click', async () => {
+        if (currentWorkspace === 'all') return;
+        const name = prompt(t('newFolderPrompt') || '请输入文件夹名称：');
+        if (!name) return;
+        const rootId = workspaceRootIds[currentWorkspace];
+        if (!rootId) { alert('无法找到当前工作区的根文件夹'); return; }
+        try {
+            await new Promise((resolve, reject) => {
+                chrome.bookmarks.create({ parentId: rootId, title: name.trim() }, resolve);
+            });
+            await refreshAndRender();
+        } catch(e) {
+            alert('创建文件夹失败：' + e.message);
+        }
+    });
+
+    // New Sub-folder button (delegated)
+    document.addEventListener('click', e => {
+        if (e.target.closest('.folder-add-subfolder-btn')) {
+            const btn = e.target.closest('.folder-add-subfolder-btn');
+            const folderId = btn.dataset.folderId;
+            if (!folderId) return;
+            const name = prompt(t('newFolderPrompt') || 'Enter sub-folder name:');
+            if (!name) return;
+            chrome.bookmarks.create({ parentId: folderId, title: name.trim() }, () => {
+                refreshAndRender();
+            });
+            return;
         }
     });
 
@@ -1406,38 +1511,33 @@ async function deleteFolder(folderId, workspaceId) {
 }
 
 async function refreshFavicon(id, isChild) {
-    // 找到书签的 DOM 元素
-    const els = document.querySelectorAll(`[data-id="${id}"]`);
+    const els = document.querySelectorAll('[data-id="' + id + '"]');
     if (!els.length) return;
 
-    els.forEach(el => {
-        const iconContainer = el.querySelector('.bookmark-list-icon, .bookmark-grid-icon, .frequent-item-icon, .sub-icon');
+    els.forEach(function(el) {
+        var iconContainer = el.querySelector('.bookmark-list-icon, .bookmark-grid-icon, .frequent-item-icon, .sub-icon');
         if (!iconContainer) return;
-
-        const img = iconContainer.querySelector('img');
+        var img = iconContainer.querySelector('img');
         if (!img) return;
-
-        // 添加缓存破坏参数强制重新加载
-        const src = img.src.split('?')[0];
-        img.src = src + '?_t=' + Date.now();
+        // 正确追加缓存破坏参数，保留原有查询参数
+        var sep = img.src.indexOf('?') !== -1 ? '&' : '?';
+        img.src = img.src + sep + '_t=' + Date.now();
     });
 
-    // 如果是子书签，也更新 subBookmarks 中的 iconType 确保一致性
+    // 确保书签数据中 iconType 为 favicon，使重新渲染时保持一致
     if (isChild) {
-        const sub = findSubBookmark(id);
-        if (sub && sub.child.iconType !== 'favicon') {
+        var sub = findSubBookmark(id);
+        if (sub) {
             sub.child.iconType = 'favicon';
             sub.child.iconValue = '';
             await saveStorage();
         }
     } else {
-        const info = findBookmarkInWorkspace(id);
-        if (info && info.bookmark.iconType !== 'favicon') {
+        var info = findBookmarkInWorkspace(id);
+        if (info) {
             info.bookmark.iconType = 'favicon';
             info.bookmark.iconValue = '';
-            try {
-                await chrome.bookmarks.update(id, {});
-            } catch(e) {}
+            try { await chrome.bookmarks.update(id, {}); } catch(e) {}
             await saveStorage();
         }
     }

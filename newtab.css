@@ -176,6 +176,27 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+.new-folder-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.new-folder-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+}
+
 /* ── Section ── */
 .section { margin-bottom: 40px; }
 
@@ -378,6 +399,26 @@ body {
 }
 
 .folder-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+}
+
+.folder-add-subfolder-btn {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-add-subfolder-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: var(--accent-muted);
