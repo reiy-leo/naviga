@@ -543,7 +543,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     startContent={<Github size={18} />}
                     endContent={<ExternalLink size={14} />}
                     as="a"
-                    href="https://github.com"
+                    href="https://github.com/reiy-zleo/naviga"
                     target="_blank"
                   >
                     {t('github') || 'GitHub'}
@@ -552,7 +552,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     variant="bordered"
                     startContent={<ExternalLink size={18} />}
                     as="a"
-                    href="https://github.com/issues"
+                    href="https://github.com/reiy-zleo/naviga/issues"
                     target="_blank"
                   >
                     {t('reportIssue') || '报告问题'}
