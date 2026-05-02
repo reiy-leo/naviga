@@ -18,6 +18,7 @@ function App() {
   const [editBookmark, setEditBookmark] = useState(null)
   const [editParentBookmark, setEditParentBookmark] = useState(null)
   const [editSubBookmark, setEditSubBookmark] = useState(null)
+  const [editTargetFolderId, setEditTargetFolderId] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [initialized, setInitialized] = useState(false)
   
@@ -96,6 +97,15 @@ function App() {
       setEditBookmark(null)
       setEditParentBookmark(null)
       setEditSubBookmark(null)
+      setEditTargetFolderId(null)
+      setEditModalOpen(true)
+    }
+    
+    const handleAddBookmarkToFolder = (e) => {
+      setEditBookmark(null)
+      setEditParentBookmark(null)
+      setEditSubBookmark(null)
+      setEditTargetFolderId(e.detail?.folderId || null)
       setEditModalOpen(true)
     }
     
@@ -115,12 +125,14 @@ function App() {
     
     window.addEventListener('edit-bookmark', handleEditBookmark)
     window.addEventListener('add-bookmark', handleAddBookmark)
+    window.addEventListener('add-bookmark-to-folder', handleAddBookmarkToFolder)
     window.addEventListener('add-sub-bookmark', handleAddSubBookmark)
     window.addEventListener('edit-sub-bookmark', handleEditSubBookmark)
     
     return () => {
       window.removeEventListener('edit-bookmark', handleEditBookmark)
       window.removeEventListener('add-bookmark', handleAddBookmark)
+      window.removeEventListener('add-bookmark-to-folder', handleAddBookmarkToFolder)
       window.removeEventListener('add-sub-bookmark', handleAddSubBookmark)
       window.removeEventListener('edit-sub-bookmark', handleEditSubBookmark)
     }
@@ -131,6 +143,7 @@ function App() {
     setEditBookmark(null)
     setEditParentBookmark(null)
     setEditSubBookmark(null)
+    setEditTargetFolderId(null)
   }
   
   if (!initialized) {
@@ -169,11 +182,13 @@ function App() {
           bookmark={editBookmark}
           parentBookmark={editParentBookmark}
           subBookmark={editSubBookmark}
+          targetFolderId={editTargetFolderId}
           onClose={() => {
             setEditModalOpen(false)
             setEditBookmark(null)
             setEditParentBookmark(null)
             setEditSubBookmark(null)
+            setEditTargetFolderId(null)
           }}
           onSave={handleEditSave}
         />

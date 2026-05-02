@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { getAllFavicons, saveFavicon, deleteFavicon } from '../db/faviconDB'
 
 // Chrome Storage 适配器
 const chromeStorage = {
@@ -238,36 +239,61 @@ export const useAppStore = create(
       githubGistUrl: '',
       setGithubGistUrl: (githubGistUrl) => set({ githubGistUrl }),
 
-      // Favicon 缓存 { domain: dataUrl } — 独立存储到 chrome.storage.local
+      // Favicon 缓存 { domain: { favicon: base64DataUrl, favIconUrl: string, name: string, url: string } }
+      // 持久化到 IndexedDB，刷新页面后不丢失
       faviconCache: {},
       setFaviconCache: (faviconCache) => set({ faviconCache }),
       getFaviconCache: (domain) => get().faviconCache[domain] || null,
-      setFaviconForDomain: (domain, dataUrl) => {
-        const updated = { ...get().faviconCache, [domain]: dataUrl }
+      setFaviconForDomain: (domain, dataUrl, name, url, favIconUrl) => {
+        if (!dataUrl) return // 不保存空数据
+        const record = { favicon: dataUrl, favIconUrl: favIconUrl || '', name: name || '', url: url || '' }
+        const updated = { ...get().faviconCache, [domain]: record }
         set({ faviconCache: updated })
-        // 持久化到 chrome.storage.local（独立 key，避免撑大主 storage）
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          chrome.storage.local.set({ 'naviga-favicons': updated })
-        }
+        // 异步持久化到 IndexedDB（带错误日志）
+        saveFavicon(domain, { favicon: dataUrl, favIconUrl, name, url }).then(saved => {
+          console.log('[favicon] saved to IndexedDB:', domain, saved?.favicon?.length, 'bytes')
+        }).catch(err => {
+          console.error('[favicon] FAILED to save to IndexedDB:', domain, err)
+        })
       },
       clearFaviconForDomain: (domain) => {
         const updated = { ...get().faviconCache }
         delete updated[domain]
         set({ faviconCache: updated })
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          chrome.storage.local.set({ 'naviga-favicons': updated })
-        }
+        // 异步从 IndexedDB 删除
+        deleteFavicon(domain).catch(() => {})
       },
       loadFaviconCache: async () => {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          try {
-            const result = await chrome.storage.local.get('naviga-favicons')
-            if (result['naviga-favicons']) {
-              set({ faviconCache: result['naviga-favicons'] })
+        try {
+          const map = await getAllFavicons()
+          const count = Object.keys(map).length
+          console.log('[favicon] loaded from IndexedDB:', count, 'domains')
+          if (count > 0) {
+            set({ faviconCache: map })
+          } else {
+            // 首次使用 IndexedDB：从旧的 chrome.storage.local 迁移数据
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+              try {
+                const result = await chrome.storage.local.get('naviga-favicons')
+                const oldData = result['naviga-favicons']
+                if (oldData && Object.keys(oldData).length > 0) {
+                  // 旧格式: { domain: dataUrl }，转换为新格式
+                  const newCache = {}
+                  for (const [domain, dataUrl] of Object.entries(oldData)) {
+                    newCache[domain] = { favicon: dataUrl, favIconUrl: '', name: '', url: '' }
+                    saveFavicon(domain, { favicon: dataUrl }).catch(() => {})
+                  }
+                  set({ faviconCache: newCache })
+                  // 清除旧数据
+                  chrome.storage.local.remove('naviga-favicons')
+                }
+              } catch {
+                // 旧数据读取失败不影响
+              }
             }
-          } catch (err) {
-            console.error('Failed to load favicon cache:', err)
           }
+        } catch (err) {
+          console.error('Failed to load favicon cache from IndexedDB:', err)
         }
       },
 
@@ -280,11 +306,55 @@ export const useAppStore = create(
             const response = await chrome.runtime.sendMessage({ type: 'getTabFavicons' })
             if (response?.favicons) {
               set({ tabFavicons: response.favicons })
+              // 对不在 faviconCache 中的 domain，主动通过 background fetch 转 base64 并缓存
+              const cache = get().faviconCache
+              for (const [domain, favIconUrl] of Object.entries(response.favicons)) {
+                if (!cache[domain]?.favicon) {
+                  get().fetchAndCacheFavicon(domain, favIconUrl)
+                }
+              }
             }
           } catch (err) {
-            console.error('Failed to fetch tab favicons:', err)
+            // Service worker 尚未启动时会出现 "Receiving end does not exist"
+            // 这是正常的，不需要报错，后续 tabs 更新时会自动获取
           }
         }
+      },
+      // 通过 background service worker fetch favicon URL 并转为 base64 dataURL（绕过 CORS）
+      fetchFaviconAsDataUrl: async (url) => {
+        if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+          try {
+            const response = await chrome.runtime.sendMessage({ type: 'fetchFavicon', url })
+            if (response?.dataUrl) {
+              return response.dataUrl
+            }
+            // response.dataUrl 为 null 说明 background fetch 失败
+          } catch (err) {
+            console.warn('[favicon] sendMessage failed:', err?.message || err, url)
+          }
+        }
+        return null
+      },
+      // 获取指定 domain 的 favicon base64 并存入缓存
+      // 优先使用传入的 favIconUrl，失败则 fallback 到 domain/favicon.ico
+      fetchAndCacheFavicon: async (domain, favIconUrl) => {
+        // 路径 1: 使用传入的 favIconUrl
+        let dataUrl = await get().fetchFaviconAsDataUrl(favIconUrl)
+        if (dataUrl) {
+          get().setFaviconForDomain(domain, dataUrl, '', '', favIconUrl)
+          return
+        }
+        // 路径 2: fallback 到 domain/favicon.ico
+        const fallbackUrl = `${domain}/favicon.ico`
+        if (fallbackUrl !== favIconUrl) {
+          console.warn('[favicon] primary URL failed, trying fallback:', domain, fallbackUrl)
+          dataUrl = await get().fetchFaviconAsDataUrl(fallbackUrl)
+          if (dataUrl) {
+            get().setFaviconForDomain(domain, dataUrl, '', '', fallbackUrl)
+            return
+          }
+        }
+        console.warn('[favicon] all fetches failed for:', domain)
       },
 
       // 从 Chrome Storage 初始化

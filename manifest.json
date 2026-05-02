@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Workspace-based bookmark navigation for Edge new tab",
   "permissions": ["bookmarks", "storage", "tabs", "newtab"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },

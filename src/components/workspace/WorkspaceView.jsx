@@ -70,7 +70,7 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
   const menuRef = useRef(null)
 
   const menuWidth = 180
-  const menuHeight = 220
+  const menuHeight = 260
   let adjustedX = x
   let adjustedY = y
   if (adjustedX + menuWidth > window.innerWidth) adjustedX = window.innerWidth - menuWidth - 8
@@ -117,6 +117,13 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
     }
   }
 
+  // 新建书签
+  const handleNewBookmark = () => {
+    onClose()
+    // 打开编辑弹窗，指定父文件夹
+    window.dispatchEvent(new CustomEvent('add-bookmark-to-folder', { detail: { folderId } }))
+  }
+
   // 解散文件夹：将子项移到父文件夹（workspaceId），然后删除空文件夹
   const handleDissolve = async () => {
     onClose()
@@ -161,6 +168,13 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
       >
         <Pencil size={16} className="text-default-400" />
         {t('rename') || '重命名'}
+      </button>
+      <button
+        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-default-100 transition-colors"
+        onClick={handleNewBookmark}
+      >
+        <BookmarkPlus size={16} className="text-default-400" />
+        {t('newBookmark') || '新建书签'}
       </button>
       <button
         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-default-100 transition-colors"
@@ -456,6 +470,16 @@ function FolderGroup({ path, bookmarks, clickCounts, workspaceId, folderId, allF
         </span>
         {/* 右侧：文件夹操作 + 视图切换 */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          <Tooltip content={t('newBookmark') || '新建书签'}>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('add-bookmark-to-folder', { detail: { folderId } }))
+              }}
+              className="p-1 rounded-md text-default-400 hover:text-primary-500 hover:bg-default-100 transition-colors"
+            >
+              <BookmarkPlus size={13} />
+            </button>
+          </Tooltip>
           <Tooltip content={t('newSubFolder') || '新建子文件夹'}>
             <button
               onClick={handleNewSubFolderClick}
@@ -858,22 +882,7 @@ function WorkspaceView({ workspaceId }) {
         </div>
       )}
 
-      {/* 按路径分组的书签 - 每组独立视图模式 + 拖拽支持 */}
-      {Array.from(groups.entries()).map(([path, pathBookmarks]) => (
-        <FolderGroup
-          key={path}
-          path={path}
-          bookmarks={pathBookmarks}
-          clickCounts={clickCounts}
-          workspaceId={workspaceId}
-          folderId={folderIdMap.get(path)}
-          allFolderIds={folderIdMap}
-          onRefresh={buildFlatData}
-          workspaceColor={wsColor}
-        />
-      ))}
-
-      {/* 直接书签（不属于任何子文件夹） */}
+      {/* 直接书签（不属于任何子文件夹）- 未分组置顶 */}
       {directBookmarks.length > 0 && (
         <div
           ref={directContainerRef}
@@ -973,6 +982,21 @@ function WorkspaceView({ workspaceId }) {
           )}
         </div>
       )}
+
+      {/* 按路径分组的书签 - 每组独立视图模式 + 拖拽支持 */}
+      {Array.from(groups.entries()).map(([path, pathBookmarks]) => (
+        <FolderGroup
+          key={path}
+          path={path}
+          bookmarks={pathBookmarks}
+          clickCounts={clickCounts}
+          workspaceId={workspaceId}
+          folderId={folderIdMap.get(path)}
+          allFolderIds={folderIdMap}
+          onRefresh={buildFlatData}
+          workspaceColor={wsColor}
+        />
+      ))}
 
       {!hasContent && (
         <div className="text-center py-20 text-default-500">

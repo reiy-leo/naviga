@@ -6,12 +6,14 @@ import { Link2, Star, StarOff, Pencil, Trash2, BookmarkPlus, RefreshCw, GripVert
 
 /**
  * 获取子书签 favicon URL
- * 优先级：tabFavicons → domain/favicon.ico
+ * 优先级：faviconCache(base64) → tabFavicons → domain/favicon.ico
  */
-function getSubFavicon(url, tabFavicons = {}) {
+function getSubFavicon(url, faviconCache = {}, tabFavicons = {}) {
   try {
     const domain = new URL(url).origin
-    // 优先使用 tabs API 获取的 favIconUrl
+    // 优先使用 IndexedDB 缓存的 base64
+    if (faviconCache[domain]?.favicon) return faviconCache[domain].favicon
+    // 其次使用 tabs API 获取的 favIconUrl
     if (tabFavicons[domain]) return tabFavicons[domain]
     return `${domain}/favicon.ico`
   } catch {
@@ -135,7 +137,7 @@ function ContextMenu({ x, y, bookmark, isFav, onClose }) {
 /**
  * 子书签展开列表
  */
-function SubBookmarkList({ parentId, viewMode, tabFavicons }) {
+function SubBookmarkList({ parentId, viewMode, faviconCache, tabFavicons }) {
   const { subBookmarks, removeSubBookmark } = useAppStore()
   const subs = subBookmarks[parentId] || []
 
@@ -163,7 +165,7 @@ function SubBookmarkList({ parentId, viewMode, tabFavicons }) {
     return (
       <div className="sub-bookmarks-list ml-11 mt-1 flex flex-col gap-0.5">
         {subs.map((sub) => {
-          const subFav = getSubFavicon(sub.url, tabFavicons)
+          const subFav = getSubFavicon(sub.url, faviconCache, tabFavicons)
           return (
             <div
               key={sub.id}
@@ -209,7 +211,7 @@ function SubBookmarkList({ parentId, viewMode, tabFavicons }) {
         <span className="text-[10px] text-default-400">{subs.length}/5</span>
       </div>
       {subs.map((sub) => {
-        const subFav = getSubFavicon(sub.url, tabFavicons)
+        const subFav = getSubFavicon(sub.url, faviconCache, tabFavicons)
         return (
           <div
             key={sub.id}
@@ -248,7 +250,7 @@ function SubBookmarkList({ parentId, viewMode, tabFavicons }) {
 }
 
 function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = false, onDragStart, onDragEnd }) {
-  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, iconSize } = useAppStore()
+  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, fetchFaviconAsDataUrl, iconSize } = useAppStore()
   const [imageError, setImageError] = useState(false)
   const [menuPos, setMenuPos] = useState(null)
   const [subsExpanded, setSubsExpanded] = useState(false)
@@ -307,38 +309,75 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     }
   }, [bookmark.title, bookmark.url])
 
-  // 获取 favicon：优先从缓存 → tabs API → 网站 favicon.ico
+  // 获取 favicon：优先从 IndexedDB 缓存(base64) → tabFavicons URL → domain/favicon.ico
   const domain = useMemo(() => {
     try { return new URL(bookmark.url).origin } catch { return null }
   }, [bookmark.url])
 
   const faviconUrl = useMemo(() => {
     if (imageError || !domain) return null
-    // 1. 优先使用缓存（可能是 dataURL）
-    if (faviconCache[domain]) return faviconCache[domain]
-    // 2. 其次使用 tabs API 获取的 favIconUrl
-    if (tabFavicons[domain]) return tabFavicons[domain]
-    // 3. 最后用网站的 favicon.ico，加时间戳支持刷新
+    // 1. 优先使用 IndexedDB 缓存的 base64（刷新页面不丢失）
+    if (faviconCache[domain]?.favicon) return faviconCache[domain].favicon
+    // 2. 其次使用 tabs API 获取的 favIconUrl（临时显示，后台正在获取 base64）
+    if (tabFavicons[domain]) {
+      if (faviconRefreshKey) {
+        const sep = tabFavicons[domain].includes('?') ? '&' : '?'
+        return `${tabFavicons[domain]}${sep}_t=${faviconRefreshKey}`
+      }
+      return tabFavicons[domain]
+    }
+    // 3. 最后 fallback 到网站的 favicon.ico
     const cacheBuster = faviconRefreshKey ? `?t=${faviconRefreshKey}` : ''
     return `${domain}/favicon.ico${cacheBuster}`
   }, [domain, imageError, faviconCache, tabFavicons, faviconRefreshKey])
 
-  // favicon 加载成功时缓存为 dataUrl
+  // favicon 从 URL 加载成功时，通过 background fetch 转 base64 缓存到 IndexedDB
+  // （替代 CORS 受限的 canvas 导出方案）
   const handleFaviconLoad = useCallback((e) => {
-    if (!domain || faviconCache[domain]) return
-    const img = e.target
-    try {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth || 32
-      canvas.height = img.naturalHeight || 32
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      const dataUrl = canvas.toDataURL('image/png')
-      setFaviconForDomain(domain, dataUrl)
-    } catch {
-      // CORS 限制时无法 canvas 导出，跳过缓存
+    if (!domain || faviconCache[domain]?.favicon) return
+    const src = e.target.src
+    // 只对 URL 来源的图片做 base64 转换（data: 开头的已经是 base64）
+    if (src && !src.startsWith('data:')) {
+      fetchFaviconAsDataUrl(src).then(dataUrl => {
+        if (dataUrl) {
+          setFaviconForDomain(domain, dataUrl, displayTitle, bookmark.url, src)
+          return
+        }
+        // fallback: 尝试 domain/favicon.ico（去掉 cache buster）
+        const cleanUrl = `${domain}/favicon.ico`
+        if (cleanUrl !== src.split('?')[0]) {
+          return fetchFaviconAsDataUrl(cleanUrl).then(fallbackDataUrl => {
+            if (fallbackDataUrl) {
+              setFaviconForDomain(domain, fallbackDataUrl, displayTitle, bookmark.url, cleanUrl)
+            }
+          })
+        }
+      })
     }
-  }, [domain, faviconCache, setFaviconForDomain])
+  }, [domain, faviconCache, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark.url])
+
+  // favicon 加载失败时的 fallback：通过 background service worker fetch 转 base64 绕过 CORS
+  const handleFaviconError = useCallback(() => {
+    setImageError(true)
+    if (!domain) return
+    // 尝试多个 fallback URL
+    const urls = [
+      tabFavicons[domain],
+      `${domain}/favicon.ico`
+    ].filter(Boolean)
+    const tryNext = (index) => {
+      if (index >= urls.length) return // 所有 URL 都失败了
+      fetchFaviconAsDataUrl(urls[index]).then(dataUrl => {
+        if (dataUrl) {
+          setFaviconForDomain(domain, dataUrl, displayTitle, bookmark.url, urls[index])
+          setImageError(false)
+        } else {
+          tryNext(index + 1) // 尝试下一个 fallback URL
+        }
+      })
+    }
+    tryNext(0)
+  }, [domain, tabFavicons, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark.url])
 
   const handleClick = () => {
     incrementClickCount(bookmark.id)
@@ -358,11 +397,13 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
 
   // 刷新图标事件
   useEffect(() => {
-    const handleRefresh = (e) => {
+    const handleRefresh = async (e) => {
       if (e.detail?.id === bookmark.id) {
         setImageError(false)
         // 清除缓存后重新获取
         if (domain) clearFaviconForDomain(domain)
+        // 重新从 background 获取 tabFavicons，确保数据最新
+        await useAppStore.getState().fetchTabFavicons()
         // 强制刷新：用时间戳更新 img src
         setFaviconRefreshKey(Date.now())
       }
@@ -414,7 +455,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
                   data-bookmark-id={bookmark.id}
                   className={`${sizeConfig.icon} object-contain`}
                   onLoad={handleFaviconLoad}
-                  onError={() => setImageError(true)}
+                  onError={handleFaviconError}
                 />
               ) : (
                 <Link2 size={sizeConfig.fallback} className="text-default-500" />
@@ -441,7 +482,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         </Card>
         {/* 子书签展开列表 */}
         {subsExpanded && hasSubBookmarks && (
-          <SubBookmarkList parentId={bookmark.id} viewMode="list" tabFavicons={tabFavicons} />
+          <SubBookmarkList parentId={bookmark.id} viewMode="list" faviconCache={faviconCache} tabFavicons={tabFavicons} />
         )}
         {menuPos && (
           <ContextMenu
@@ -483,7 +524,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
                   data-bookmark-id={bookmark.id}
                   className={`${sizeConfig.icon} object-contain`}
                   onLoad={handleFaviconLoad}
-                  onError={() => setImageError(true)}
+                  onError={handleFaviconError}
                 />
               ) : (
                 <Link2 size={sizeConfig.fallback} className="text-default-500" />
@@ -508,7 +549,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         {/* 子书签浮层 */}
         {subsExpanded && hasSubBookmarks && (
           <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50">
-            <SubBookmarkList parentId={bookmark.id} viewMode="grid" tabFavicons={tabFavicons} />
+            <SubBookmarkList parentId={bookmark.id} viewMode="grid" faviconCache={faviconCache} tabFavicons={tabFavicons} />
           </div>
         )}
         {menuPos && (

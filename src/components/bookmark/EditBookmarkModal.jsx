@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store/useAppStore'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Input, Button } from '@nextui-org/react'
 
-function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, onClose, onSave }) {
+function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolderId, onClose, onSave }) {
   const { t } = useTranslation()
   const [title, setTitle] = useState('')
   const [url, setUrl] = useState('')
@@ -71,7 +71,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, onClose, onS
         })
       } else if (isNew) {
         // 创建新书签
-        const parentId = useAppStore.getState().currentWorkspace
+        const parentId = targetFolderId || useAppStore.getState().currentWorkspace
         await chrome.bookmarks.create({
           parentId,
           title: title.trim() || finalUrl,
