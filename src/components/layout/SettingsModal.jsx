@@ -17,7 +17,7 @@ import {
   Divider,
   Tooltip,
 } from "@nextui-org/react";
-import { X, Github, ExternalLink, Upload, Download, RefreshCw, Plus } from 'lucide-react'
+import { X, Github, ExternalLink, Upload, Download, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import { importBookmarksFromFile } from '../../utils/importBookmarks'
 import { syncToGithub, restoreFromGithub } from '../../utils/githubSync'
 
@@ -168,6 +168,19 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     a.download = 'naviga-backup.json'
     a.click()
     URL.revokeObjectURL(url)
+  }
+  
+  // 删除工作区
+  const handleDeleteWorkspace = async (workspaceId) => {
+    if (!confirm(t('confirmDeleteWorkspace') || '确定删除此工作区及其所有内容？')) return
+    try {
+      await chrome.bookmarks.removeTree(workspaceId)
+      // 刷新工作区列表
+      await initWorkspaces()
+    } catch (error) {
+      console.error('Failed to delete workspace:', error)
+      alert('删除失败: ' + error.message)
+    }
   }
   
   const handleCreateWorkspace = async () => {
@@ -461,6 +474,16 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         }}
                         className="flex-1"
                       />
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="danger"
+                        onPress={() => handleDeleteWorkspace(ws.id)}
+                        title={t('deleteWorkspace') || '删除工作区'}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                     <div className="flex items-center gap-3 pl-12">
                       <Input

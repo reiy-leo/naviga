@@ -137,6 +137,8 @@ const resources = {
       moveFailed: '移动失败',
       selectTargetWorkspace: '选择目标工作区',
       noOtherWorkspace: '没有其他工作区',
+      deleteWorkspace: '删除工作区',
+      confirmDeleteWorkspace: '确定删除此工作区及其所有内容？',
       newTabPage: '新建标签页',
     }
   },
@@ -264,6 +266,8 @@ const resources = {
       moveFailed: 'Move failed',
       selectTargetWorkspace: 'Select target workspace',
       noOtherWorkspace: 'No other workspace',
+      deleteWorkspace: 'Delete workspace',
+      confirmDeleteWorkspace: 'Delete this workspace and all its contents?',
       newTabPage: 'New Tab',
     }
   },
@@ -397,6 +401,8 @@ const resources = {
       deleteFolder: 'フォルダを削除',
       confirmDeleteFolder: 'このフォルダとすべての内容を削除しますか？',
       newTabPage: '新しいタブ',
+      deleteWorkspace: 'ワークスペースを削除',
+      confirmDeleteWorkspace: 'このワークスペースとすべての内容を削除しますか？',
     }
   }
 }
