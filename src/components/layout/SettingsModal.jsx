@@ -533,6 +533,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
           <Tab key="about" title={t('about') || '关于'}>
             <ModalBody className="py-8">
               <div className="text-center">
+                <img src="/logo.png?v=20260503" alt="Naviga" className="w-16 h-16 mx-auto mb-4 rounded-xl object-contain" />
                 <div className="text-5xl font-bold mb-3">Naviga</div>
                 <div className="text-default-500 mb-8">{t('version') || '版本'} 1.0.0</div>
                 

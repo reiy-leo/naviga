@@ -12,7 +12,7 @@ function NavBar({ onSettingsClick, onAddBookmark, onLogoClick }) {
         onClick={onLogoClick}
         className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
       >
-        <img src="/logo.png" alt="Naviga" className="w-9 h-9 rounded-xl object-contain" />
+        <img src="/logo.png?v=20260503" alt="Naviga" className="w-9 h-9 rounded-xl object-contain" />
         <span className="font-semibold text-lg text-foreground">aviga</span>
       </button>
       
