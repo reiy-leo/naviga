@@ -6,10 +6,13 @@ import { Link2, Star, StarOff, Pencil, Trash2, BookmarkPlus, RefreshCw, GripVert
 
 /**
  * 获取子书签 favicon URL
+ * 优先级：tabFavicons → domain/favicon.ico
  */
-function getSubFavicon(url) {
+function getSubFavicon(url, tabFavicons = {}) {
   try {
     const domain = new URL(url).origin
+    // 优先使用 tabs API 获取的 favIconUrl
+    if (tabFavicons[domain]) return tabFavicons[domain]
     return `${domain}/favicon.ico`
   } catch {
     return null
@@ -132,7 +135,7 @@ function ContextMenu({ x, y, bookmark, isFav, onClose }) {
 /**
  * 子书签展开列表
  */
-function SubBookmarkList({ parentId, viewMode }) {
+function SubBookmarkList({ parentId, viewMode, tabFavicons }) {
   const { subBookmarks, removeSubBookmark } = useAppStore()
   const subs = subBookmarks[parentId] || []
 
@@ -160,7 +163,7 @@ function SubBookmarkList({ parentId, viewMode }) {
     return (
       <div className="sub-bookmarks-list ml-11 mt-1 flex flex-col gap-0.5">
         {subs.map((sub) => {
-          const subFav = getSubFavicon(sub.url)
+          const subFav = getSubFavicon(sub.url, tabFavicons)
           return (
             <div
               key={sub.id}
@@ -206,7 +209,7 @@ function SubBookmarkList({ parentId, viewMode }) {
         <span className="text-[10px] text-default-400">{subs.length}/5</span>
       </div>
       {subs.map((sub) => {
-        const subFav = getSubFavicon(sub.url)
+        const subFav = getSubFavicon(sub.url, tabFavicons)
         return (
           <div
             key={sub.id}
@@ -245,10 +248,11 @@ function SubBookmarkList({ parentId, viewMode }) {
 }
 
 function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = false, onDragStart, onDragEnd }) {
-  const { incrementClickCount, subBookmarks, favorites, faviconCache, setFaviconForDomain, clearFaviconForDomain, iconSize } = useAppStore()
+  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, iconSize } = useAppStore()
   const [imageError, setImageError] = useState(false)
   const [menuPos, setMenuPos] = useState(null)
   const [subsExpanded, setSubsExpanded] = useState(false)
+  const [faviconRefreshKey, setFaviconRefreshKey] = useState(0)
 
   // 根据 iconSize 计算各尺寸
   const sizeConfig = useMemo(() => {
@@ -303,18 +307,21 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     }
   }, [bookmark.title, bookmark.url])
 
-  // 获取 favicon：优先从缓存，否则用 URL
+  // 获取 favicon：优先从缓存 → tabs API → 网站 favicon.ico
   const domain = useMemo(() => {
     try { return new URL(bookmark.url).origin } catch { return null }
   }, [bookmark.url])
 
   const faviconUrl = useMemo(() => {
     if (imageError || !domain) return null
-    // 优先使用缓存
+    // 1. 优先使用缓存（可能是 dataURL）
     if (faviconCache[domain]) return faviconCache[domain]
-    // 无缓存，用远程 URL
-    return `${domain}/favicon.ico`
-  }, [domain, imageError, faviconCache])
+    // 2. 其次使用 tabs API 获取的 favIconUrl
+    if (tabFavicons[domain]) return tabFavicons[domain]
+    // 3. 最后用网站的 favicon.ico，加时间戳支持刷新
+    const cacheBuster = faviconRefreshKey ? `?t=${faviconRefreshKey}` : ''
+    return `${domain}/favicon.ico${cacheBuster}`
+  }, [domain, imageError, faviconCache, tabFavicons, faviconRefreshKey])
 
   // favicon 加载成功时缓存为 dataUrl
   const handleFaviconLoad = useCallback((e) => {
@@ -356,6 +363,8 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         setImageError(false)
         // 清除缓存后重新获取
         if (domain) clearFaviconForDomain(domain)
+        // 强制刷新：用时间戳更新 img src
+        setFaviconRefreshKey(Date.now())
       }
     }
     window.addEventListener('refresh-icon', handleRefresh)
@@ -432,7 +441,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         </Card>
         {/* 子书签展开列表 */}
         {subsExpanded && hasSubBookmarks && (
-          <SubBookmarkList parentId={bookmark.id} viewMode="list" />
+          <SubBookmarkList parentId={bookmark.id} viewMode="list" tabFavicons={tabFavicons} />
         )}
         {menuPos && (
           <ContextMenu
@@ -499,7 +508,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         {/* 子书签浮层 */}
         {subsExpanded && hasSubBookmarks && (
           <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50">
-            <SubBookmarkList parentId={bookmark.id} viewMode="grid" />
+            <SubBookmarkList parentId={bookmark.id} viewMode="grid" tabFavicons={tabFavicons} />
           </div>
         )}
         {menuPos && (

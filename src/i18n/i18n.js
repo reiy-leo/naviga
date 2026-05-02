@@ -120,6 +120,8 @@ const resources = {
       newFolder: '新建文件夹',
       newSubFolder: '新建子文件夹',
       dissolveFolder: '解散文件夹',
+      deleteFolder: '删除文件夹',
+      confirmDeleteFolder: '确定删除此文件夹及其所有内容？',
     }
   },
   en: {
@@ -238,6 +240,8 @@ const resources = {
       newFolder: 'New Folder',
       newSubFolder: 'New Subfolder',
       dissolveFolder: 'Dissolve Folder',
+      deleteFolder: 'Delete Folder',
+      confirmDeleteFolder: 'Delete this folder and all its contents?',
     }
   },
   ja: {
@@ -357,6 +361,8 @@ const resources = {
       newFolder: '新規フォルダ',
       newSubFolder: '新規サブフォルダ',
       dissolveFolder: 'フォルダを解体',
+      deleteFolder: 'フォルダを削除',
+      confirmDeleteFolder: 'このフォルダとすべての内容を削除しますか？',
     }
   }
 }

@@ -10,7 +10,7 @@ import { useBookmarks } from './hooks/useBookmarks'
 function App() {
   const { 
     workspaces, currentWorkspace, initWorkspaces, initFromChromeStorage, loadFaviconCache,
-    setCurrentWorkspace,
+    fetchTabFavicons, setCurrentWorkspace,
     theme, background, iconSize, language
   } = useAppStore()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -29,6 +29,8 @@ function App() {
       await initFromChromeStorage()
       await loadFaviconCache()
       await initWorkspaces()
+      // 获取 tabs favicon 数据
+      await fetchTabFavicons()
       // 应用启动模式
       const { startupMode, lastWorkspace, startupWorkspace } = useAppStore.getState()
       if (startupMode === 'last' && lastWorkspace) {
@@ -41,6 +43,19 @@ function App() {
     }
     init()
   }, [])
+  
+  // 监听 background 发来的 tab favicon 更新通知
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      const listener = (message) => {
+        if (message.type === 'tabFaviconsUpdated') {
+          fetchTabFavicons()
+        }
+      }
+      chrome.runtime.onMessage.addListener(listener)
+      return () => chrome.runtime.onMessage.removeListener(listener)
+    }
+  }, [fetchTabFavicons])
   
   // 应用主题设置
   useEffect(() => {

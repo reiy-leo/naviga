@@ -15,6 +15,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'newtab.html'),
+        background: resolve(__dirname, 'src/background.js'),
+      },
+      output: {
+        entryFileNames: '[name].js',
       },
     },
   },

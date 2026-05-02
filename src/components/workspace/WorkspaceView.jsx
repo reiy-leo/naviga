@@ -4,7 +4,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { useBookmarks } from '../../hooks/useBookmarks'
 import BookmarkCard from '../bookmark/BookmarkCard'
 import { Button, Tooltip } from "@nextui-org/react";
-import { LayoutList, LayoutGrid, Sparkles, Folder, FolderOpen, FolderPlus, Pencil, Trash2, GripVertical } from 'lucide-react'
+import { LayoutList, LayoutGrid, Sparkles, Folder, FolderOpen, FolderPlus, FolderMinus, FolderX, Pencil, BookmarkPlus } from 'lucide-react'
 
 // hex 颜色转 rgba
 function hexToRgba(hex, alpha) {
@@ -51,6 +51,11 @@ function flattenBookmarks(items, parentPath = [], parentFolderIds = []) {
       for (const [k, v] of sub.folderIdMap) {
         folderIdMap.set(k, v)
       }
+      // 空文件夹也要显示：如果此文件夹在 groups 中不存在（没有子书签），则添加空数组
+      const subPathKey = subPath.join(' / ')
+      if (!groups.has(subPathKey)) {
+        groups.set(subPathKey, [])
+      }
     }
   }
 
@@ -65,7 +70,7 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
   const menuRef = useRef(null)
 
   const menuWidth = 180
-  const menuHeight = 180
+  const menuHeight = 220
   let adjustedX = x
   let adjustedY = y
   if (adjustedX + menuWidth > window.innerWidth) adjustedX = window.innerWidth - menuWidth - 8
@@ -131,6 +136,18 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
     }
   }
 
+  // 删除文件夹：递归删除文件夹及其所有子项
+  const handleDelete = async () => {
+    onClose()
+    if (!confirm(t('confirmDeleteFolder') || '确定删除此文件夹及其所有内容？')) return
+    try {
+      await chrome.bookmarks.removeTree(folderId)
+      onRefresh?.()
+    } catch (err) {
+      console.error('Failed to delete folder:', err)
+    }
+  }
+
   return (
     <div
       ref={menuRef}
@@ -154,11 +171,18 @@ function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, 
       </button>
       <div className="my-1 border-t border-default-200" />
       <button
-        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-danger-50 text-danger-500 transition-colors"
+        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-default-100 transition-colors"
         onClick={handleDissolve}
       >
-        <Trash2 size={16} />
+        <FolderMinus size={16} className="text-warning-500" />
         {t('dissolveFolder') || '解散文件夹'}
+      </button>
+      <button
+        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-danger-50 text-danger-500 transition-colors"
+        onClick={handleDelete}
+      >
+        <FolderX size={16} />
+        {t('deleteFolder') || '删除文件夹'}
       </button>
     </div>
   )
@@ -443,9 +467,25 @@ function FolderGroup({ path, bookmarks, clickCounts, workspaceId, folderId, allF
           <Tooltip content={t('dissolveFolder') || '解散文件夹'}>
             <button
               onClick={handleDissolve}
+              className="p-1 rounded-md text-default-400 hover:text-warning-500 hover:bg-warning-50 transition-colors"
+            >
+              <FolderMinus size={13} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t('deleteFolder') || '删除文件夹'}>
+            <button
+              onClick={async () => {
+                if (!confirm(t('confirmDeleteFolder') || '确定删除此文件夹及其所有内容？')) return
+                try {
+                  await chrome.bookmarks.removeTree(folderId)
+                  onRefresh?.()
+                } catch (err) {
+                  console.error('Failed to delete folder:', err)
+                }
+              }}
               className="p-1 rounded-md text-default-400 hover:text-danger-500 hover:bg-danger-50 transition-colors"
             >
-              <Trash2 size={13} />
+              <FolderX size={13} />
             </button>
           </Tooltip>
           <div className="w-px h-3 bg-default-200 mx-0.5" />

@@ -3,7 +3,10 @@
   "name": "Naviga",
   "version": "1.0.0",
   "description": "Workspace-based bookmark navigation for Edge new tab",
-  "permissions": ["bookmarks", "storage", "newtab"],
+  "permissions": ["bookmarks", "storage", "tabs", "newtab"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },

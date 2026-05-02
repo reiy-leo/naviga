@@ -271,6 +271,22 @@ export const useAppStore = create(
         }
       },
 
+      // Tabs favicon 数据 { domain: favIconUrl } — 从 background service worker 获取
+      tabFavicons: {},
+      setTabFavicons: (tabFavicons) => set({ tabFavicons }),
+      fetchTabFavicons: async () => {
+        if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+          try {
+            const response = await chrome.runtime.sendMessage({ type: 'getTabFavicons' })
+            if (response?.favicons) {
+              set({ tabFavicons: response.favicons })
+            }
+          } catch (err) {
+            console.error('Failed to fetch tab favicons:', err)
+          }
+        }
+      },
+
       // 从 Chrome Storage 初始化
       initFromChromeStorage: async () => {
         if (typeof chrome !== 'undefined' && chrome.storage) {
