@@ -84,6 +84,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     wsMeta, updateWsMeta, initWorkspaces,
     githubPat, setGithubPat,
     githubGistUrl, setGithubGistUrl,
+    githubRepoUrl, setGithubRepoUrl,
   } = useAppStore()
   
   const handleLanguageChange = (lang) => {
@@ -91,9 +92,74 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     i18n.changeLanguage(lang)
   }
   
+
+  // 测试 GitHub Token（验证读写权限，实际提交一个测试文件）
+  const handleTestToken = async () => {
+    if (!githubPat) {
+      alert(t('testTokenFailed') || 'Token 无效或无法访问仓库')
+      return
+    }
+    try {
+      const repo = githubRepoUrl || 'https://github.com/reiy-leo/naviga'
+      const match = repo.match(/github\.com\/([^\/]+)\/([^\/\s]+)/)
+      if (!match) throw new Error('Invalid repo URL')
+      const [, owner, repo_name] = match
+      const testFileName = `test-write-${Date.now()}.txt`
+      const testContent = 'Naviga write permission test'
+      const base64Content = btoa(unescape(encodeURIComponent(testContent)))
+
+      // 1. 先验证能访问仓库（读权限）
+      const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo_name}`, {
+        headers: { 'Authorization': `Bearer ${githubPat}` }
+      })
+      if (!repoResponse.ok) {
+        throw new Error(`无法访问仓库: ${repoResponse.status}`)
+      }
+
+      // 2. 测试写入权限：提交一个测试文件
+      const createResponse = await fetch(`https://api.github.com/repos/${owner}/${repo_name}/contents/${testFileName}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${githubPat}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: 'Naviga: test write permission',
+          content: base64Content,
+        })
+      })
+
+      if (!createResponse.ok) {
+        const errData = await createResponse.json().catch(() => ({}))
+        throw new Error(`写入失败: ${createResponse.status} ${errData.message || ''}`)
+      }
+
+      // 3. 清理：删除测试文件（保持仓库干净）
+      const createData = await createResponse.json()
+      const fileSha = createData.content?.sha
+      if (fileSha) {
+        await fetch(`https://api.github.com/repos/${owner}/${repo_name}/contents/${testFileName}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${githubPat}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: 'Naviga: clean up test file',
+            sha: fileSha,
+          })
+        })
+      }
+
+      alert(t('testTokenSuccess') || 'Token 有效，可写入仓库')
+    } catch (error) {
+      alert((t('testTokenFailed') || 'Token 无效或无法访问仓库') + ': ' + error.message)
+    }
+  }
+
   const handleGithubSync = async () => {
     if (!githubPat) {
-      alert('请先配置 Personal Access Token')
+      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token')
       return
     }
     
@@ -104,25 +170,44 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       if (result.gistUrl) {
         setGithubGistUrl(result.gistUrl)
       }
-      alert(`同步成功！\nGist URL: ${result.gistUrl}\nGist ID: ${result.gistId}`)
+      alert((t('syncSuccess') || '同步成功！\nGist URL: ') + result.gistUrl + '\nGist ID: ' + result.gistId)
     } else {
-      alert(`同步失败: ${result.error}`)
+      // 处理国际化错误信息
+      let errorMsg = result.error || ''
+      if (errorMsg.startsWith('githubApiError')) {
+        const status = errorMsg.split(':')[1] || 'unknown'
+        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status
+      } else if (errorMsg.startsWith('networkError')) {
+        const msg = errorMsg.split(':').slice(1).join(':') || ''
+        errorMsg = (t('networkError') || '网络错误: ') + msg
+      }
+      alert((t('syncFailed') || '同步失败: ') + errorMsg)
     }
   }
   
   const handleGithubRestore = async () => {
     if (!githubPat || !githubGistUrl) {
-      alert('请先配置 Personal Access Token 和 Gist URL')
+      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token 和 Gist URL')
       return
     }
     
     const result = await restoreFromGithub(githubPat, githubGistUrl)
     
     if (result.success) {
-      alert('恢复成功！页面将刷新。')
+      alert(t('restoreSuccess') || '恢复成功！页面将刷新。')
       window.location.reload()
     } else {
-      alert(`恢复失败: ${result.error}`)
+      // 处理国际化错误信息
+      let errorMsg = result.error || ''
+      if (errorMsg.startsWith('invalidGistUrl')) {
+        errorMsg = t('invalidGistUrl') || '无效的 Gist URL'
+      } else if (errorMsg.startsWith('backupNotFound')) {
+        errorMsg = t('backupNotFound') || '备份文件不存在'
+      } else if (errorMsg.startsWith('githubApiError')) {
+        const status = errorMsg.split(':')[1] || 'unknown'
+        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status
+      }
+      alert((t('restoreFailed') || '恢复失败: ') + errorMsg)
     }
   }
   
@@ -399,7 +484,10 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
               {/* GitHub Sync */}
               <div>
                 <h3 className="text-sm font-medium mb-2">{t('syncToGithub') || '同步到 GitHub'}</h3>
-                <p className="text-xs text-default-500 mb-3">{t('syncHint') || '将数据同步到 GitHub Gist'}</p>
+                <p className="text-xs text-default-500 mb-1">{t('syncHint') || '将数据同步到 GitHub Gist'}</p>
+                <p className="text-xs text-primary-500 mb-3">
+                  {t('githubTokenHint') || '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限'}
+                </p>
                 <div className="flex flex-col gap-3">
                   <Input
                     type="password"
@@ -409,12 +497,21 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     onValueChange={setGithubPat}
                   />
                   <Input
-                    label="Gist URL"
-                    placeholder="https://gist.github.com/username/gistId"
-                    value={githubGistUrl}
-                    onValueChange={setGithubGistUrl}
+                    label={t('githubRepoUrl') || '仓库 URL'}
+                    placeholder="https://github.com/reiy-leo/naviga"
+                    value={githubRepoUrl}
+                    onValueChange={setGithubRepoUrl}
                   />
+                  <p className="text-xs text-default-400">{t('githubRepoUrlHint') || '请输入仓库 URL，如 https://github.com/reiy-leo/naviga'}</p>
                   <div className="flex gap-2">
+                    <Button
+                      variant="bordered"
+                      onPress={handleTestToken}
+                      startContent={<RefreshCw size={16} />}
+                      className="flex-1"
+                    >
+                      {t('testToken') || '测试 Token'}
+                    </Button>
                     <Button
                       color="primary"
                       onPress={handleGithubSync}
@@ -543,7 +640,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     startContent={<Github size={18} />}
                     endContent={<ExternalLink size={14} />}
                     as="a"
-                    href="https://github.com/reiy-zleo/naviga"
+                    href="https://github.com/reiy-leo/naviga"
                     target="_blank"
                   >
                     {t('github') || 'GitHub'}
@@ -552,15 +649,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     variant="bordered"
                     startContent={<ExternalLink size={18} />}
                     as="a"
-                    href="https://github.com/reiy-zleo/naviga/issues"
+                    href="https://github.com/reiy-leo/naviga/issues"
                     target="_blank"
                   >
                     {t('reportIssue') || '报告问题'}
                   </Button>
-                </div>
-                
-                <div className="mt-8 text-sm text-default-400">
-                  {t('author') || '作者'}: Naviga Team
                 </div>
               </div>
             </ModalBody>

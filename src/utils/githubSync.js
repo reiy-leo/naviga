@@ -9,7 +9,7 @@ function extractGistId(urlOrId) {
   if (!urlOrId) return null
   const trimmed = urlOrId.trim()
   // 尝试匹配 URL 格式
-  const urlMatch = trimmed.match(/gist\.github\.com\/[^/]+\/([a-f0-9]+)/i)
+  const urlMatch = trimmed.match(/gist\.github\.com\/[^\/]+\/([a-f0-9]+)/i)
   if (urlMatch) return urlMatch[1]
   // 纯 ID 格式 (hex string)
   if (/^[a-f0-9]{20,}$/i.test(trimmed)) return trimmed
@@ -74,7 +74,7 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
     })
     
     if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`)
+      return { success: false, error: `githubApiError:${response.status}` }
     }
     
     const result = await response.json()
@@ -88,7 +88,7 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
     console.error('GitHub sync failed:', error)
     return {
       success: false,
-      error: error.message,
+      error: `networkError:${error.message}`,
     }
   }
 }
@@ -98,9 +98,9 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
   try {
     const gistId = extractGistId(gistUrlOrId)
     if (!gistId) {
-      throw new Error('无效的 Gist URL')
+      return { success: false, error: 'invalidGistUrl' }
     }
-
+    
     const url = `https://api.github.com/gists/${gistId}`
     
     const response = await fetch(url, {
@@ -110,14 +110,14 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
     })
     
     if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`)
+      return { success: false, error: `githubApiError:${response.status}` }
     }
     
     const result = await response.json()
     const content = result.files['naviga-backup.json']?.content
     
     if (!content) {
-      throw new Error('备份文件不存在')
+      return { success: false, error: 'backupNotFound' }
     }
     
     const data = JSON.parse(content)
@@ -145,7 +145,7 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
     console.error('GitHub restore failed:', error)
     return {
       success: false,
-      error: error.message,
+      error: `networkError:${error.message}`,
     }
   }
 }
