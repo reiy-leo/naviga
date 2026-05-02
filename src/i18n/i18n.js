@@ -109,6 +109,15 @@ const resources = {
       refreshIcon: '刷新图标',
       save: '保存',
       cancel: '取消',
+      // 图标设置
+      icon: '图标',
+      auto: '自动获取',
+      manual: '手动填写',
+      autoFetchHint: '将自动从网站获取图标',
+      iconUrl: '图标地址',
+      invalidIconUrl: '无效的图片地址',
+      validIconUrl: '有效的图片地址',
+      preview: '预览',
       
       // 视图
       listView: '列表视图',
@@ -123,6 +132,12 @@ const resources = {
       dissolveFolder: '解散文件夹',
       deleteFolder: '删除文件夹',
       confirmDeleteFolder: '确定删除此文件夹及其所有内容？',
+      moveTo: '移动到...',
+      move: '移动',
+      moveFailed: '移动失败',
+      selectTargetWorkspace: '选择目标工作区',
+      noOtherWorkspace: '没有其他工作区',
+      newTabPage: '新建标签页',
     }
   },
   en: {
@@ -244,6 +259,12 @@ const resources = {
       dissolveFolder: 'Dissolve Folder',
       deleteFolder: 'Delete Folder',
       confirmDeleteFolder: 'Delete this folder and all its contents?',
+      moveTo: 'Move to...',
+      move: 'Move',
+      moveFailed: 'Move failed',
+      selectTargetWorkspace: 'Select target workspace',
+      noOtherWorkspace: 'No other workspace',
+      newTabPage: 'New Tab',
     }
   },
   ja: {
@@ -352,6 +373,15 @@ const resources = {
       refreshIcon: 'アイコンを更新',
       url: 'URL',
       name: '名前',
+      // アイコン設定
+      icon: 'アイコン',
+      auto: '自動取得',
+      manual: '手動入力',
+      autoFetchHint: 'Webサイトからアイコンが自動取得されます',
+      iconUrl: 'アイコンURL',
+      invalidIconUrl: '無効な画像URL',
+      validIconUrl: '有効な画像URL',
+      preview: 'プレビュー',
       
       // 表示
       listView: 'リスト表示',
@@ -366,6 +396,7 @@ const resources = {
       dissolveFolder: 'フォルダを解体',
       deleteFolder: 'フォルダを削除',
       confirmDeleteFolder: 'このフォルダとすべての内容を削除しますか？',
+      newTabPage: '新しいタブ',
     }
   }
 }

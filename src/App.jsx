@@ -4,8 +4,10 @@ import SettingsModal from './components/layout/SettingsModal'
 import WorkspaceView from './components/workspace/WorkspaceView'
 import AllView from './components/workspace/AllView'
 import EditBookmarkModal from './components/bookmark/EditBookmarkModal'
+import MoveBookmarkModal from './components/bookmark/MoveBookmarkModal'
 import { useAppStore } from './store/useAppStore'
 import { useBookmarks } from './hooks/useBookmarks'
+import i18n from './i18n/i18n'
 
 function App() {
   const { 
@@ -20,6 +22,8 @@ function App() {
   const [editSubBookmark, setEditSubBookmark] = useState(null)
   const [editTargetFolderId, setEditTargetFolderId] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [moveBookmark, setMoveBookmark] = useState(null)
+  const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [initialized, setInitialized] = useState(false)
   
   useBookmarks()
@@ -81,6 +85,12 @@ function App() {
     // 应用语言
     if (language) {
       root.setAttribute('lang', language)
+      // 切换 i18n 语言
+      if (i18n.language !== language) {
+        i18n.changeLanguage(language)
+      }
+      // 设置页面标题（使用指定语言的翻译）
+      document.title = i18n.t('newTabPage', { lng: language })
     }
   }, [theme, background, iconSize, language])
   
@@ -123,11 +133,17 @@ function App() {
       setEditModalOpen(true)
     }
     
+    const handleMoveBookmark = (e) => {
+      setMoveBookmark(e.detail)
+      setMoveModalOpen(true)
+    }
+    
     window.addEventListener('edit-bookmark', handleEditBookmark)
     window.addEventListener('add-bookmark', handleAddBookmark)
     window.addEventListener('add-bookmark-to-folder', handleAddBookmarkToFolder)
     window.addEventListener('add-sub-bookmark', handleAddSubBookmark)
     window.addEventListener('edit-sub-bookmark', handleEditSubBookmark)
+    window.addEventListener('move-bookmark', handleMoveBookmark)
     
     return () => {
       window.removeEventListener('edit-bookmark', handleEditBookmark)
@@ -135,6 +151,7 @@ function App() {
       window.removeEventListener('add-bookmark-to-folder', handleAddBookmarkToFolder)
       window.removeEventListener('add-sub-bookmark', handleAddSubBookmark)
       window.removeEventListener('edit-sub-bookmark', handleEditSubBookmark)
+      window.removeEventListener('move-bookmark', handleMoveBookmark)
     }
   }, [])
   
@@ -191,6 +208,22 @@ function App() {
             setEditTargetFolderId(null)
           }}
           onSave={handleEditSave}
+        />
+      )}
+
+      {moveModalOpen && (
+        <MoveBookmarkModal
+          bookmark={moveBookmark}
+          currentWorkspaceId={currentWorkspace}
+          onClose={() => {
+            setMoveModalOpen(false)
+            setMoveBookmark(null)
+          }}
+          onComplete={() => {
+            // 移动完成后刷新书签列表
+            const { initWorkspaces } = useAppStore.getState()
+            initWorkspaces()
+          }}
         />
       )}
     </div>

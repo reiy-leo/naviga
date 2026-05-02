@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store/useAppStore'
 import { Card, CardBody, Tooltip } from "@nextui-org/react";
-import { Link2, Star, StarOff, Pencil, Trash2, BookmarkPlus, RefreshCw, GripVertical, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Link2, Star, StarOff, Pencil, Trash2, BookmarkPlus, RefreshCw, GripVertical, X, Folder } from 'lucide-react'
 
 /**
  * 获取子书签 favicon URL
@@ -117,6 +117,19 @@ function ContextMenu({ x, y, bookmark, isFav, onClose }) {
 
       <div className="my-1 border-t border-default-200" />
 
+      {/* 移动到... */}
+      <button
+        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-default-100 transition-colors"
+        onClick={(e) => {
+          e.stopPropagation()
+          window.dispatchEvent(new CustomEvent('move-bookmark', { detail: bookmark }))
+          onClose()
+        }}
+      >
+        <Folder size={16} className="text-default-400" />
+        {t('moveTo') || '移动到...'}
+      </button>
+
       {/* 删除 */}
       <button
         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm hover:bg-danger-50 text-danger-500 transition-colors"
@@ -135,17 +148,94 @@ function ContextMenu({ x, y, bookmark, isFav, onClose }) {
 }
 
 /**
- * 子书签展开列表
+ * 计算 dropdown 相对触发元素的最佳弹出方向
+ * 返回 { placement: 'bottom'|'top'|'left'|'right', offset: { left, top } }
  */
-function SubBookmarkList({ parentId, viewMode, faviconCache, tabFavicons }) {
+function calcDropdownPlacement(triggerRect, subsCount) {
+  const vpW = window.innerWidth
+  const vpH = window.innerHeight
+  const estW = 260
+  const estH = 40 + subsCount * 36
+  const gap = 6
+
+  const cx = triggerRect.left + triggerRect.width / 2
+  const cy = triggerRect.top + triggerRect.height / 2
+
+  // 四个方向的可用空间
+  const spaces = {
+    bottom: vpH - triggerRect.bottom - gap,
+    top: triggerRect.top - gap,
+    right: vpW - triggerRect.right - gap,
+    left: triggerRect.left - gap,
+  }
+
+  // 按空间从大到小排序候选方向
+  const candidates = Object.entries(spaces)
+    .filter(([, s]) => s > 0)
+    .sort((a, b) => b[1] - a[1])
+
+  // 优先选择垂直方向（上/下），且空间够放下 dropdown
+  const vertFirst = ['bottom', 'top']
+  const best = candidates.find(([dir]) => {
+    if (vertFirst.includes(dir)) return spaces[dir] >= estH
+    return spaces[dir] >= estW
+  }) || candidates[0]
+
+  const placement = best ? best[0] : 'bottom'
+
+  // 计算 offset（相对触发元素的 left/top）
+  let offset = {}
+  switch (placement) {
+    case 'bottom':
+      offset = {
+        left: Math.max(8, Math.min(cx - estW / 2, vpW - estW - 8)) - triggerRect.left,
+        top: triggerRect.height + gap,
+      }
+      break
+    case 'top':
+      offset = {
+        left: Math.max(8, Math.min(cx - estW / 2, vpW - estW - 8)) - triggerRect.left,
+        top: -estH - gap,
+      }
+      break
+    case 'right':
+      offset = {
+        left: triggerRect.width + gap,
+        top: Math.max(8, Math.min(cy - estH / 2, vpH - estH - 8)) - triggerRect.top,
+      }
+      break
+    case 'left':
+      offset = {
+        left: -estW - gap,
+        top: Math.max(8, Math.min(cy - estH / 2, vpH - estH - 8)) - triggerRect.top,
+      }
+      break
+  }
+
+  return { placement, offset }
+}
+
+/**
+ * 子书签 Dropdown — 根据触发元素位置自动选择上/下/左/右方向
+ */
+function SubBookmarkDropdown({ parentId, faviconCache, tabFavicons, onClose, triggerRef }) {
   const { subBookmarks, removeSubBookmark } = useAppStore()
+  const { t } = useTranslation()
   const subs = subBookmarks[parentId] || []
+
+  // 在渲染前同步计算位置（避免跳变）
+  const { placement, offset } = useMemo(() => {
+    if (!triggerRef?.current) return { placement: 'bottom', offset: { left: 0, top: 0 } }
+    const rect = triggerRef.current.getBoundingClientRect()
+    return calcDropdownPlacement(rect, subs.length)
+  }, [subs.length])
 
   if (subs.length === 0) return null
 
   const handleSubClick = (e, url) => {
     e.stopPropagation()
     window.open(url, '_blank')
+    onClose()
   }
 
   const handleSubDelete = (e, subId) => {
@@ -158,18 +248,38 @@ function SubBookmarkList({ parentId, viewMode, faviconCache, tabFavicons }) {
     window.dispatchEvent(new CustomEvent('edit-sub-bookmark', {
       detail: { parentId, subBookmark: sub }
     }))
+    onClose()
   }
 
-  // 列表模式：紧凑水平布局
-  if (viewMode === 'list') {
-    return (
-      <div className="sub-bookmarks-list ml-11 mt-1 flex flex-col gap-0.5">
+  // 小三角箭头：根据 placement 决定位置和方向
+  const arrowClass = 'absolute w-2.5 h-2.5 rotate-45 bg-content1'
+  const arrowMap = {
+    bottom: { className: `${arrowClass} border-l border-t border-default-200`, style: { top: -5, left: triggerRef?.current ? Math.max(12, triggerRef.current.getBoundingClientRect().left + triggerRef.current.offsetWidth / 2 - offset.left) - 5 : 20 } },
+    top: { className: `${arrowClass} border-r border-b border-default-200`, style: { bottom: -5, left: triggerRef?.current ? Math.max(12, triggerRef.current.getBoundingClientRect().left + triggerRef.current.offsetWidth / 2 - offset.left) - 5 : 20 } },
+    right: { className: `${arrowClass} border-l border-t border-default-200`, style: { left: -5, top: triggerRef?.current ? Math.max(12, triggerRef.current.getBoundingClientRect().top + triggerRef.current.offsetHeight / 2 - offset.top) - 5 : 20 } },
+    left: { className: `${arrowClass} border-r border-b border-default-200`, style: { right: -5, top: triggerRef?.current ? Math.max(12, triggerRef.current.getBoundingClientRect().top + triggerRef.current.offsetHeight / 2 - offset.top) - 5 : 20 } },
+  }
+  const arrow = arrowMap[placement]
+
+  return (
+    <div
+      className="absolute z-50 bg-content1 border border-default-200 rounded-xl shadow-xl py-1.5 min-w-[220px] max-w-[300px] animate-slide-down"
+      style={{ left: offset.left, top: offset.top }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 小三角箭头 */}
+      <div className={arrow.className} style={arrow.style} />
+      <div className="relative bg-content1 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-1.5 mb-0.5">
+          <span className="text-[10px] font-medium text-default-400 uppercase tracking-wider">{t('subBookmarks') || '子书签'}</span>
+          <span className="text-[10px] text-default-300">{subs.length}/5</span>
+        </div>
         {subs.map((sub) => {
           const subFav = getSubFavicon(sub.url, faviconCache, tabFavicons)
           return (
             <div
               key={sub.id}
-              className="sub-bookmark-item group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-default-100/80 transition-colors cursor-pointer"
+              className="group flex items-center gap-3 px-4 py-2 hover:bg-default-100/80 transition-colors cursor-pointer"
               onClick={(e) => handleSubClick(e, sub.url)}
             >
               <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
@@ -179,19 +289,19 @@ function SubBookmarkList({ parentId, viewMode, faviconCache, tabFavicons }) {
                   <Link2 size={12} className="text-default-400" />
                 )}
               </div>
-              <span className="text-xs text-default-600 flex-1 min-w-0 break-all">{sub.title}</span>
+              <span className="text-xs text-default-600 flex-1 min-w-0 truncate">{sub.title}</span>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <button
                   className="p-0.5 rounded hover:bg-default-200 transition-colors"
                   onClick={(e) => handleSubEdit(e, sub)}
-                  title="编辑"
+                  title={t('edit') || '编辑'}
                 >
                   <Pencil size={11} className="text-default-400" />
                 </button>
                 <button
                   className="p-0.5 rounded hover:bg-danger-100 transition-colors"
                   onClick={(e) => handleSubDelete(e, sub.id)}
-                  title="删除"
+                  title={t('delete') || '删除'}
                 >
                   <X size={11} className="text-danger-400" />
                 </button>
@@ -200,61 +310,18 @@ function SubBookmarkList({ parentId, viewMode, faviconCache, tabFavicons }) {
           )
         })}
       </div>
-    )
-  }
-
-  // 网格模式：浮层卡片
-  return (
-    <div className="sub-bookmarks-popover absolute left-1/2 -translate-x-1/2 top-full mt-1 z-40 bg-content1 border border-default-200 rounded-xl shadow-lg p-2 w-max min-w-[220px] max-w-[320px]">
-      <div className="flex items-center justify-between px-2 py-1 mb-1">
-        <span className="text-xs font-medium text-default-500">子书签</span>
-        <span className="text-[10px] text-default-400">{subs.length}/5</span>
-      </div>
-      {subs.map((sub) => {
-        const subFav = getSubFavicon(sub.url, faviconCache, tabFavicons)
-        return (
-          <div
-            key={sub.id}
-            className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-default-100 transition-colors cursor-pointer"
-            onClick={(e) => handleSubClick(e, sub.url)}
-          >
-            <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-              {subFav ? (
-                <img src={subFav} alt="" className="w-3.5 h-3.5 object-contain" onError={(e) => { e.target.style.display = 'none' }} />
-              ) : (
-                <Link2 size={12} className="text-default-400" />
-              )}
-            </div>
-            <span className="text-xs text-default-600 flex-1 min-w-0 break-all">{sub.title}</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-              <button
-                className="p-0.5 rounded hover:bg-default-200 transition-colors"
-                onClick={(e) => handleSubEdit(e, sub)}
-                title="编辑"
-              >
-                <Pencil size={11} className="text-default-400" />
-              </button>
-              <button
-                className="p-0.5 rounded hover:bg-danger-100 transition-colors"
-                onClick={(e) => handleSubDelete(e, sub.id)}
-                title="删除"
-              >
-                <X size={11} className="text-danger-400" />
-              </button>
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }
 
 function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = false, onDragStart, onDragEnd }) {
+  const { t } = useTranslation()
   const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, fetchFaviconAsDataUrl, iconSize } = useAppStore()
   const [imageError, setImageError] = useState(false)
   const [menuPos, setMenuPos] = useState(null)
   const [subsExpanded, setSubsExpanded] = useState(false)
   const [faviconRefreshKey, setFaviconRefreshKey] = useState(0)
+  const badgeRef = useRef(null)
 
   // 根据 iconSize 计算各尺寸
   const sizeConfig = useMemo(() => {
@@ -391,6 +458,22 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     setMenuPos({ x: e.clientX, y: e.clientY })
   }, [])
 
+  // 点击外部关闭子书签 dropdown
+  useEffect(() => {
+    if (!subsExpanded) return
+    const handleClick = (e) => {
+      setSubsExpanded(false)
+    }
+    // 延迟绑定避免当前事件触发
+    const timer = setTimeout(() => {
+      window.addEventListener('click', handleClick)
+    }, 0)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('click', handleClick)
+    }
+  }, [subsExpanded])
+
   const closeMenu = useCallback(() => {
     setMenuPos(null)
   }, [])
@@ -431,7 +514,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
 
   if (viewMode === 'list') {
     return (
-      <div onContextMenu={handleContextMenu}>
+      <div onContextMenu={handleContextMenu} className="relative">
         <Card
           isPressable
           onPress={handleClick}
@@ -470,19 +553,17 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
             )}
             {hasSubBookmarks && (
               <button
-                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-500/10 text-primary-500 text-xs font-medium hover:bg-primary-500/20 transition-colors flex-shrink-0"
+                ref={badgeRef}
+                className="w-2 h-2 rounded-full bg-primary flex-shrink-0 hover:scale-150 transition-transform"
                 onClick={(e) => { e.stopPropagation(); setSubsExpanded(!subsExpanded) }}
-                title={subsExpanded ? '收起子书签' : '展开子书签'}
-              >
-                <span>{subCount}</span>
-                {subsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
+                title={t('subBookmarks') || '子书签'}
+              />
             )}
           </CardBody>
         </Card>
-        {/* 子书签展开列表 */}
+        {/* 子书签 Dropdown */}
         {subsExpanded && hasSubBookmarks && (
-          <SubBookmarkList parentId={bookmark.id} viewMode="list" faviconCache={faviconCache} tabFavicons={tabFavicons} />
+          <SubBookmarkDropdown parentId={bookmark.id} faviconCache={faviconCache} tabFavicons={tabFavicons} onClose={() => setSubsExpanded(false)} triggerRef={badgeRef} />
         )}
         {menuPos && (
           <ContextMenu
@@ -535,22 +616,18 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
             </div>
           </CardBody>
         </Card>
-        {/* 子书签徽标 - 绝对定位，不影响Card尺寸 */}
+        {/* 子书签红点 Badge */}
         {hasSubBookmarks && (
           <button
-            className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-primary-500/10 text-primary-500 text-[10px] font-medium hover:bg-primary-500/20 transition-colors z-20"
+            ref={badgeRef}
+            className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-primary z-20 ring-2 ring-background hover:scale-150 transition-transform"
             onClick={(e) => { e.stopPropagation(); setSubsExpanded(!subsExpanded) }}
-            title={subsExpanded ? '收起子书签' : '展开子书签'}
-          >
-            {subCount}
-            {subsExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          </button>
+            title={t('subBookmarks') || '子书签'}
+          />
         )}
-        {/* 子书签浮层 */}
+        {/* 子书签 Dropdown */}
         {subsExpanded && hasSubBookmarks && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50">
-            <SubBookmarkList parentId={bookmark.id} viewMode="grid" faviconCache={faviconCache} tabFavicons={tabFavicons} />
-          </div>
+          <SubBookmarkDropdown parentId={bookmark.id} faviconCache={faviconCache} tabFavicons={tabFavicons} onClose={() => setSubsExpanded(false)} triggerRef={badgeRef} />
         )}
         {menuPos && (
           <ContextMenu
