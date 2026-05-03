@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { getAllFavicons, saveFavicon, deleteFavicon } from '../db/faviconDB'
+import { getAllFavicons, saveFavicon, deleteFavicon, getFavicon } from '../db/faviconDB'
+
+// 模块级去重：跟踪正在请求的 favicon domain，避免重复请求
+const fetchingDomains = new Set()
 
 // Chrome Storage 适配器
 const chromeStorage = {
@@ -238,6 +241,8 @@ export const useAppStore = create(
       setGithubPat: (githubPat) => set({ githubPat }),
       githubGistUrl: '',
       setGithubGistUrl: (githubGistUrl) => set({ githubGistUrl }),
+      githubRepoUrl: '',
+      setGithubRepoUrl: (githubRepoUrl) => set({ githubRepoUrl }),
 
       // Favicon 缓存 { domain: { favicon: base64DataUrl, favIconUrl: string, name: string, url: string } }
       // 持久化到 IndexedDB，刷新页面后不丢失
@@ -306,10 +311,10 @@ export const useAppStore = create(
             const response = await chrome.runtime.sendMessage({ type: 'getTabFavicons' })
             if (response?.favicons) {
               set({ tabFavicons: response.favicons })
-              // 对不在 faviconCache 中的 domain，主动通过 background fetch 转 base64 并缓存
+              // 对不在 faviconCache 中的 domain，先检查 IndexedDB，再决定是否请求
               const cache = get().faviconCache
               for (const [domain, favIconUrl] of Object.entries(response.favicons)) {
-                if (!cache[domain]?.favicon) {
+                if (!cache[domain]?.favicon && !fetchingDomains.has(domain)) {
                   get().fetchAndCacheFavicon(domain, favIconUrl)
                 }
               }
@@ -328,7 +333,6 @@ export const useAppStore = create(
             if (response?.dataUrl) {
               return response.dataUrl
             }
-            // response.dataUrl 为 null 说明 background fetch 失败
           } catch (err) {
             console.warn('[favicon] sendMessage failed:', err?.message || err, url)
           }
@@ -336,25 +340,54 @@ export const useAppStore = create(
         return null
       },
       // 获取指定 domain 的 favicon base64 并存入缓存
-      // 优先使用传入的 favIconUrl，失败则 fallback 到 domain/favicon.ico
+      // 写入前先检查 IndexedDB 是否已存在，避免重复请求
       fetchAndCacheFavicon: async (domain, favIconUrl) => {
-        // 路径 1: 使用传入的 favIconUrl
-        let dataUrl = await get().fetchFaviconAsDataUrl(favIconUrl)
-        if (dataUrl) {
-          get().setFaviconForDomain(domain, dataUrl, '', '', favIconUrl)
+        if (!domain) return
+        // 检查是否正在请求中，如果是则跳过
+        if (fetchingDomains.has(domain)) {
+          console.log('[favicon] already fetching:', domain)
           return
         }
-        // 路径 2: fallback 到 domain/favicon.ico
-        const fallbackUrl = `${domain}/favicon.ico`
-        if (fallbackUrl !== favIconUrl) {
-          console.warn('[favicon] primary URL failed, trying fallback:', domain, fallbackUrl)
-          dataUrl = await get().fetchFaviconAsDataUrl(fallbackUrl)
-          if (dataUrl) {
-            get().setFaviconForDomain(domain, dataUrl, '', '', fallbackUrl)
+        // 先检查内存缓存
+        const memCache = get().faviconCache
+        if (memCache[domain]?.favicon) return
+        // 检查 IndexedDB 是否已存在该 domain 的数据
+        try {
+          const existing = await getFavicon(domain)
+          if (existing?.favicon) {
+            console.log('[favicon] already in IndexedDB, skip:', domain)
+            // 同步到内存缓存
+            const updated = { ...memCache, [domain]: { favicon: existing.favicon, favIconUrl: existing.favIconUrl || '', name: existing.name || '', url: existing.url || '' } }
+            set({ faviconCache: updated })
             return
           }
+        } catch {
+          // IndexedDB 查询失败，继续尝试获取
         }
-        console.warn('[favicon] all fetches failed for:', domain)
+        // 标记为正在请求
+        fetchingDomains.add(domain)
+        try {
+          // 路径 1: 使用传入的 favIconUrl
+          let dataUrl = await get().fetchFaviconAsDataUrl(favIconUrl)
+          if (dataUrl) {
+            get().setFaviconForDomain(domain, dataUrl, '', '', favIconUrl)
+            return
+          }
+          // 路径 2: fallback 到 domain/favicon.ico
+          const fallbackUrl = `${domain}/favicon.ico`
+          if (fallbackUrl !== favIconUrl) {
+            console.log('[favicon] trying fallback:', domain, fallbackUrl)
+            dataUrl = await get().fetchFaviconAsDataUrl(fallbackUrl)
+            if (dataUrl) {
+              get().setFaviconForDomain(domain, dataUrl, '', '', fallbackUrl)
+              return
+            }
+          }
+          console.warn('[favicon] all fetches failed for:', domain)
+        } finally {
+          // 清除正在请求标记
+          fetchingDomains.delete(domain)
+        }
       },
 
       // 从 Chrome Storage 初始化
@@ -384,6 +417,7 @@ export const useAppStore = create(
                   folderViewModes: stored.state.folderViewModes || {},
                   githubPat: stored.state.githubPat || stored.state.githubToken || '',
                   githubGistUrl: stored.state.githubGistUrl || stored.state.githubGistId || '',
+                  githubRepoUrl: stored.state.githubRepoUrl || '',
                 })
               }
             }
@@ -414,6 +448,7 @@ export const useAppStore = create(
         folderViewModes: state.folderViewModes,
         githubPat: state.githubPat,
         githubGistUrl: state.githubGistUrl,
+        githubRepoUrl: state.githubRepoUrl,
       }),
       skipHydration: true, // 我们手动处理 hydration
     }

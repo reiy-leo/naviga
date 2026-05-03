@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '../../store/useAppStore'
-import { 
-  Modal, 
-  ModalContent, 
-  ModalHeader, 
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
   ModalBody,
-  Tabs, 
+  Tabs,
   Tab,
   Button,
   Select,
@@ -19,7 +19,7 @@ import {
 } from "@nextui-org/react";
 import { X, Github, ExternalLink, Upload, Download, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import { importBookmarksFromFile } from '../../utils/importBookmarks'
-import { syncToGithub, restoreFromGithub } from '../../utils/githubSync'
+import { syncToGithub, restoreFromGithub, testGithubToken } from '../../utils/githubSync'
 
 const WORKSPACE_COLORS = [
   // 蓝色系
@@ -71,7 +71,7 @@ const TAB_DISPLAYS = [
 function SettingsModal({ onClose, defaultTab = 'general' }) {
   const [activeTab, setActiveTab] = useState(defaultTab)
   const { t, i18n } = useTranslation()
-  
+
   const {
     theme, setTheme,
     background, setBackground,
@@ -86,74 +86,41 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     githubGistUrl, setGithubGistUrl,
     githubRepoUrl, setGithubRepoUrl,
   } = useAppStore()
-  
+
   const handleLanguageChange = (lang) => {
     setLanguage(lang)
     i18n.changeLanguage(lang)
   }
-  
 
-  // 测试 GitHub Token（验证读写权限，实际提交一个测试文件）
+
+  // 测试 GitHub Token（使用 Octokit 验证读写权限）
   const handleTestToken = async () => {
     if (!githubPat) {
-      alert(t('testTokenFailed') || 'Token 无效或无法访问仓库')
+      alert(t('testTokenFailed') || '请先填写 Token')
       return
     }
     try {
-      const repo = githubRepoUrl || 'https://github.com/reiy-leo/naviga'
-      const match = repo.match(/github\.com\/([^\/]+)\/([^\/\s]+)/)
-      if (!match) throw new Error('Invalid repo URL')
-      const [, owner, repo_name] = match
-      const testFileName = `test-write-${Date.now()}.txt`
-      const testContent = 'Naviga write permission test'
-      const base64Content = btoa(unescape(encodeURIComponent(testContent)))
-
-      // 1. 先验证能访问仓库（读权限）
-      const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo_name}`, {
-        headers: { 'Authorization': `Bearer ${githubPat}` }
-      })
-      if (!repoResponse.ok) {
-        throw new Error(`无法访问仓库: ${repoResponse.status}`)
+      // 使用用户输入的 repo URL，或默认值
+      const repo = githubRepoUrl && githubRepoUrl.trim() ? githubRepoUrl.trim() : 'https://github.com/reiy-leo/naviga'
+      const result = await testGithubToken(githubPat, repo)
+      if (result.success) {
+        alert(t('testTokenSuccess') || 'Token 有效，可写入仓库！')
+      } else {
+        throw new Error(result.error)
       }
-
-      // 2. 测试写入权限：提交一个测试文件
-      const createResponse = await fetch(`https://api.github.com/repos/${owner}/${repo_name}/contents/${testFileName}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${githubPat}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: 'Naviga: test write permission',
-          content: base64Content,
-        })
-      })
-
-      if (!createResponse.ok) {
-        const errData = await createResponse.json().catch(() => ({}))
-        throw new Error(`写入失败: ${createResponse.status} ${errData.message || ''}`)
-      }
-
-      // 3. 清理：删除测试文件（保持仓库干净）
-      const createData = await createResponse.json()
-      const fileSha = createData.content?.sha
-      if (fileSha) {
-        await fetch(`https://api.github.com/repos/${owner}/${repo_name}/contents/${testFileName}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${githubPat}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: 'Naviga: clean up test file',
-            sha: fileSha,
-          })
-        })
-      }
-
-      alert(t('testTokenSuccess') || 'Token 有效，可写入仓库')
     } catch (error) {
-      alert((t('testTokenFailed') || 'Token 无效或无法访问仓库') + ': ' + error.message)
+      const msg = error.message || ''
+      let displayMsg = t('testTokenFailed') || 'Token 无效或无法写入仓库'
+      if (msg.startsWith('invalidRepoUrl')) {
+        displayMsg += ': 无效的仓库 URL'
+      } else if (msg.startsWith('repoAccessFailed')) {
+        displayMsg += ': 无法访问仓库（读权限失败）'
+      } else if (msg.startsWith('writeFailed')) {
+        displayMsg += ': 无法写入仓库（写权限失败）'
+      } else if (msg.startsWith('unknownError')) {
+        displayMsg += ': 未知错误'
+      }
+      alert(displayMsg + '\n' + msg)
     }
   }
 
@@ -162,9 +129,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token')
       return
     }
-    
+
     const result = await syncToGithub(githubPat, githubGistUrl || null)
-    
+
     if (result.success) {
       // 保存 Gist URL 方便下次同步
       if (result.gistUrl) {
@@ -184,15 +151,15 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       alert((t('syncFailed') || '同步失败: ') + errorMsg)
     }
   }
-  
+
   const handleGithubRestore = async () => {
     if (!githubPat || !githubGistUrl) {
       alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token 和 Gist URL')
       return
     }
-    
+
     const result = await restoreFromGithub(githubPat, githubGistUrl)
-    
+
     if (result.success) {
       alert(t('restoreSuccess') || '恢复成功！页面将刷新。')
       window.location.reload()
@@ -210,7 +177,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       alert((t('restoreFailed') || '恢复失败: ') + errorMsg)
     }
   }
-  
+
   const handleImportFile = async () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -218,9 +185,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     input.onchange = async (e) => {
       const file = e.target.files[0]
       if (!file) return
-      
+
       const result = await importBookmarksFromFile(file)
-      
+
       if (result.success) {
         alert(`成功导入 ${result.count} 个书签`)
       } else {
@@ -229,7 +196,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     }
     input.click()
   }
-  
+
   const handleExport = () => {
     const state = useAppStore.getState()
     const exportData = {
@@ -245,7 +212,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       clickCounts: state.clickCounts,
       subBookmarks: state.subBookmarks,
     }
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -254,7 +221,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     a.click()
     URL.revokeObjectURL(url)
   }
-  
+
   // 删除工作区
   const handleDeleteWorkspace = async (workspaceId) => {
     if (!confirm(t('confirmDeleteWorkspace') || '确定删除此工作区及其所有内容？')) return
@@ -267,7 +234,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       alert('删除失败: ' + error.message)
     }
   }
-  
+
   const handleCreateWorkspace = async () => {
     try {
       // 在书签栏下创建新文件夹
@@ -281,11 +248,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       console.error('Failed to create workspace:', error)
     }
   }
-  
+
   return (
-    <Modal 
-      isOpen 
-      onClose={onClose} 
+    <Modal
+      isOpen
+      onClose={onClose}
       size="2xl"
       scrollBehavior="inside"
       classNames={{
@@ -296,7 +263,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
         <ModalHeader className="flex justify-between items-center">
           <span className="text-lg font-semibold">{t('settings') || '设置'}</span>
         </ModalHeader>
-        
+
         <Tabs
           selectedKey={activeTab}
           onSelectionChange={setActiveTab}
@@ -326,9 +293,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   ))}
                 </div>
               </div>
-              
+
               <Divider />
-              
+
               {/* Background */}
               <div>
                 <label className="text-sm font-medium mb-3 block">{t('background') || '背景'}</label>
@@ -346,9 +313,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   ))}
                 </div>
               </div>
-              
+
               <Divider />
-              
+
               {/* Icon Size */}
               <div>
                 <label className="text-sm font-medium mb-3 block">{t('iconSize') || '图标大小'}</label>
@@ -366,9 +333,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   ))}
                 </div>
               </div>
-              
+
               <Divider />
-              
+
               {/* Tab Display */}
               <div>
                 <label className="text-sm font-medium mb-3 block">{t('tabDisplay') || '标签显示'}</label>
@@ -386,7 +353,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   ))}
                 </div>
               </div>
-              
+
               <Divider />
 
               {/* On Startup */}
@@ -428,9 +395,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   )}
                 </div>
               </div>
-              
+
               <Divider />
-              
+
               {/* Language */}
               <div>
                 <label className="text-sm font-medium mb-3 block">{t('language') || '语言'}</label>
@@ -463,7 +430,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
               </div>
             </ModalBody>
           </Tab>
-          
+
           <Tab key="data" title={t('data') || '数据'}>
             <ModalBody className="gap-6 py-4">
               {/* Import */}
@@ -478,16 +445,13 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   {t('selectFile') || '选择文件'}
                 </Button>
               </div>
-              
+
               <Divider />
-              
+
               {/* GitHub Sync */}
               <div>
                 <h3 className="text-sm font-medium mb-2">{t('syncToGithub') || '同步到 GitHub'}</h3>
                 <p className="text-xs text-default-500 mb-1">{t('syncHint') || '将数据同步到 GitHub Gist'}</p>
-                <p className="text-xs text-primary-500 mb-3">
-                  {t('githubTokenHint') || '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限'}
-                </p>
                 <div className="flex flex-col gap-3">
                   <Input
                     type="password"
@@ -496,6 +460,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     value={githubPat}
                     onValueChange={setGithubPat}
                   />
+                  <p className="text-xs text-default-500 mb-3">
+                    {t('githubTokenHint') || '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限'}
+                  </p>
                   <Input
                     label={t('githubRepoUrl') || '仓库 URL'}
                     placeholder="https://github.com/reiy-leo/naviga"
@@ -531,9 +498,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   </div>
                 </div>
               </div>
-              
+
               <Divider />
-              
+
               {/* Export */}
               <div>
                 <h3 className="text-sm font-medium mb-2">{t('exportData') || '导出数据'}</h3>
@@ -548,7 +515,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
               </div>
             </ModalBody>
           </Tab>
-          
+
           <Tab key="workspace" title={t('workspace') || '工作区'}>
             <ModalBody className="gap-4 py-4">
               {workspaces.map((ws) => {
@@ -626,14 +593,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
               </Button>
             </ModalBody>
           </Tab>
-          
+
           <Tab key="about" title={t('about') || '关于'}>
             <ModalBody className="py-8">
               <div className="text-center">
                 <img src="/logo.png?v=20260503" alt="Naviga" className="w-16 h-16 mx-auto mb-4 rounded-xl object-contain" />
                 <div className="text-5xl font-bold mb-3">Naviga</div>
                 <div className="text-default-500 mb-8">{t('version') || '版本'} 1.0.0</div>
-                
+
                 <div className="flex flex-col gap-3 max-w-xs mx-auto">
                   <Button
                     variant="bordered"

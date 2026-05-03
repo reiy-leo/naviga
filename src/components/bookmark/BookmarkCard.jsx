@@ -316,7 +316,7 @@ function SubBookmarkDropdown({ parentId, faviconCache, tabFavicons, onClose, tri
 
 function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = false, onDragStart, onDragEnd }) {
   const { t } = useTranslation()
-  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, fetchFaviconAsDataUrl, iconSize } = useAppStore()
+  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, fetchFaviconAsDataUrl, fetchAndCacheFavicon, iconSize } = useAppStore()
   const [imageError, setImageError] = useState(false)
   const [menuPos, setMenuPos] = useState(null)
   const [subsExpanded, setSubsExpanded] = useState(false)
@@ -399,7 +399,6 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
   }, [domain, imageError, faviconCache, tabFavicons, faviconRefreshKey])
 
   // favicon 从 URL 加载成功时，通过 background fetch 转 base64 缓存到 IndexedDB
-  // （替代 CORS 受限的 canvas 导出方案）
   const handleFaviconLoad = useCallback((e) => {
     if (!domain || faviconCache[domain]?.favicon) return
     const src = e.target.src
@@ -408,43 +407,24 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
       fetchFaviconAsDataUrl(src).then(dataUrl => {
         if (dataUrl) {
           setFaviconForDomain(domain, dataUrl, displayTitle, bookmark.url, src)
-          return
-        }
-        // fallback: 尝试 domain/favicon.ico（去掉 cache buster）
-        const cleanUrl = `${domain}/favicon.ico`
-        if (cleanUrl !== src.split('?')[0]) {
-          return fetchFaviconAsDataUrl(cleanUrl).then(fallbackDataUrl => {
-            if (fallbackDataUrl) {
-              setFaviconForDomain(domain, fallbackDataUrl, displayTitle, bookmark.url, cleanUrl)
-            }
-          })
         }
       })
     }
   }, [domain, faviconCache, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark.url])
 
   // favicon 加载失败时的 fallback：通过 background service worker fetch 转 base64 绕过 CORS
+  // 使用 fetchAndCacheFavicon，它自带去重 + IndexedDB 检查，避免疯狂重复请求
   const handleFaviconError = useCallback(() => {
-    setImageError(true)
     if (!domain) return
-    // 尝试多个 fallback URL
-    const urls = [
-      tabFavicons[domain],
-      `${domain}/favicon.ico`
-    ].filter(Boolean)
-    const tryNext = (index) => {
-      if (index >= urls.length) return // 所有 URL 都失败了
-      fetchFaviconAsDataUrl(urls[index]).then(dataUrl => {
-        if (dataUrl) {
-          setFaviconForDomain(domain, dataUrl, displayTitle, bookmark.url, urls[index])
-          setImageError(false)
-        } else {
-          tryNext(index + 1) // 尝试下一个 fallback URL
-        }
-      })
-    }
-    tryNext(0)
-  }, [domain, tabFavicons, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark.url])
+    // 已有缓存则跳过（避免重复请求）
+    if (faviconCache[domain]?.favicon) return
+    // 设置错误状态，显示默认图标
+    setImageError(true)
+    // 使用 store 中的 fetchAndCacheFavicon，自带去重 + IndexedDB 检查 + fallback 逻辑
+    const store = useAppStore.getState()
+    const favIconUrl = tabFavicons[domain] || `${domain}/favicon.ico`
+    store.fetchAndCacheFavicon(domain, favIconUrl)
+  }, [domain, faviconCache, tabFavicons])
 
   const handleClick = () => {
     incrementClickCount(bookmark.id)

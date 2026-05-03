@@ -6,7 +6,7 @@ import { Folder } from 'lucide-react'
 
 function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }) {
   const { t } = useTranslation()
-  const { workspaces } = useAppStore()
+  const { workspaces, parseWorkspaceTitle } = useAppStore()
   const [selectedWorkspace, setSelectedWorkspace] = useState('')
 
   // Filter out current workspace
@@ -28,7 +28,7 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
     <Modal isOpen onClose={onClose} size="sm" placement="center" className="dark:bg-content1">
       <ModalContent>
         <ModalHeader className="text-base font-semibold flex items-center gap-2">
-          <FolderOpen size={18} />
+          <Folder size={18} />
           {t('moveTo') || '移动到...'}
         </ModalHeader>
         <ModalBody>
@@ -42,7 +42,6 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
           ) : (
             <RadioGroup value={selectedWorkspace} onValueChange={setSelectedWorkspace} className="max-h-60 overflow-y-auto">
               {availableWorkspaces.map((ws) => {
-                const { parseWorkspaceTitle } = useAppStore.getState()
                 const { emoji, text } = parseWorkspaceTitle(ws.title)
                 return (
                   <Radio key={ws.id} value={ws.id}>
