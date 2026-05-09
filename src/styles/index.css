@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @import '@heroui/react/styles';
 
+body {
+  overflow: hidden;
+  width: 100vw;
+}
+
 /* HeroUI 变量 fallback —— 解决 Tailwind v4 下 bg-content1 等类透明问题 */
 :root {
   --heroui-content1: 24 24 27;
@@ -163,7 +168,7 @@ html:not(.dark) {
 /* App container - full width */
 .app {
   margin: 0 auto;
-  padding: 40px 48px;
+  padding: 30px 40px;
   min-height: 100vh;
 }
 
@@ -189,31 +194,63 @@ html:not(.dark) {
 
 :root {
   .bg-swatch-deep {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0, 0.2) 2%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(0, 0, 0, 0.6) 6%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(0, 0, 0, 0.2) 2%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-subtle {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241, 0.2) 2%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(99, 102, 241, 0.6) 6%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(99, 102, 241, 0.2) 2%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-bluetint {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(22, 111, 254, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 165, 241, 0.2) 2%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(22, 111, 254, 0.6) 6%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(99, 165, 241, 0.2) 2%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-warntint {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22, 0.2) 2%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(251, 191, 36, 0.6) 6%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(249, 115, 22, 0.2) 2%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-default {
     background: rgba(var(--heroui-background));
   }
   .bg-swatch-deep2 {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0, 0.6) 4%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(0, 0, 0, 0.6) 12%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(0, 0, 0, 0.6) 4%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-subtle2 {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241, 0.6) 4%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(99, 102, 241, 0.6) 12%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(99, 102, 241, 0.6) 4%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-bluetint2 {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(22, 111, 254, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 165, 241, 0.6) 4%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(22, 111, 254, 0.6) 12%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(99, 165, 241, 0.6) 4%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-warntint2 {
-    background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22, 0.6) 4%, rgba(var(--heroui-background))));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, rgba(251, 191, 36, 0.6) 12%, rgba(var(--heroui-background))),
+      color-mix(in srgb, rgba(249, 115, 22, 0.6) 4%, rgba(var(--heroui-background)))
+    );
   }
   .bg-swatch-default2 {
     background: rgba(var(--heroui-background));
@@ -229,7 +266,11 @@ html:not(.dark) {
 }
 
 [data-background='subtle'] .modal__dialog {
-  background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background))));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(99, 102, 241) 6%, rgba(var(--heroui-background))),
+    color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background)))
+  );
 }
 
 [data-background='subtle'] .app {
@@ -237,7 +278,11 @@ html:not(.dark) {
 }
 
 [data-background='deep'] .modal__dialog {
-  background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0) 2%, rgba(var(--heroui-background))));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(0, 0, 0) 6%, rgba(var(--heroui-background))),
+    color-mix(in srgb, rgba(0, 0, 0) 2%, rgba(var(--heroui-background)))
+  );
 }
 
 [data-background='deep'] .app {
@@ -249,7 +294,11 @@ html:not(.dark) {
 }
 
 [data-background='blueTint'] .modal__dialog {
-  background: linear-gradient(180deg, color-mix(in srgb, rgba(59, 130, 246) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background))));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(59, 130, 246) 6%, rgba(var(--heroui-background))),
+    color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background)))
+  );
 }
 
 [data-background='blueTint'] .app {
@@ -257,7 +306,11 @@ html:not(.dark) {
 }
 
 [data-background='warmTint'] .modal__dialog {
-  background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22) 2%, rgba(var(--heroui-background))));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, rgba(251, 191, 36) 6%, rgba(var(--heroui-background))),
+    color-mix(in srgb, rgba(249, 115, 22) 2%, rgba(var(--heroui-background)))
+  );
 }
 
 [data-background='warmTint'] .app {

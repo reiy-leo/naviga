@@ -11,7 +11,18 @@ import i18n from './i18n/i18n';
 import { useAppStore } from './store/useAppStore';
 
 function App() {
-  const { currentWorkspace, initWorkspaces, initFromChromeStorage, loadFaviconCache, fetchTabFavicons, setCurrentWorkspace, theme, background, iconSize, language } = useAppStore();
+  const {
+    currentWorkspace,
+    initWorkspaces,
+    initFromChromeStorage,
+    loadFaviconCache,
+    fetchTabFavicons,
+    setCurrentWorkspace,
+    theme,
+    background,
+    iconSize,
+    language,
+  } = useAppStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsDefaultTab, setSettingsDefaultTab] = useState('general');
 
@@ -149,7 +160,9 @@ function App() {
         }}
       />
 
-      <main id='main-content'>{currentWorkspace === 'all' ? <AllView /> : <WorkspaceView workspaceId={currentWorkspace} />}</main>
+      <main id='main-content'>
+        {currentWorkspace === 'all' ? <AllView /> : <WorkspaceView workspaceId={currentWorkspace} />}
+      </main>
 
       {settingsOpen && (
         <SettingsModal
