@@ -36,6 +36,9 @@ const resources = {
       workspaceEmojiCountHint: '请输入不超过3个Emoji符号，不要包含非Emoji字符',
       moveWorkspaceUp: '向前移动工作区',
       moveWorkspaceDown: '向后移动工作区',
+      moveAlreadyTop: '已是这一级目录的最前面了',
+      moveAlreayBottom: '已是这一级目录的最后面了',
+      moveFolderFailed: '移动文件夹失败',
 
       // 图标
       iconSize: '图标大小',
@@ -89,7 +92,8 @@ const resources = {
       syncToGithub: '同步到 GitHub',
       syncHint: '将书签数据同步到 GitHub Gist',
       configureGithub: '配置 GitHub',
-      githubTokenHint: '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限',
+      githubTokenHint:
+        '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限',
       githubRepoUrl: '仓库 URL',
       testToken: '测试Token',
       testTokenSuccess: 'Token 有效，可访问仓库',
@@ -255,7 +259,8 @@ const resources = {
       syncToGithub: 'Sync to GitHub',
       syncHint: 'Sync bookmark data to GitHub Gist',
       configureGithub: 'Configure GitHub',
-      githubTokenHint: 'Get Fine-grained personal access tokens from https://github.com/settings/personal-access-tokens/new, grant read/write access to specified repos',
+      githubTokenHint:
+        'Get Fine-grained personal access tokens from https://github.com/settings/personal-access-tokens/new, grant read/write access to specified repos',
       githubRepoUrl: 'Repo URL',
       testToken: 'Test Token',
       testTokenSuccess: 'Token valid, can access repo',

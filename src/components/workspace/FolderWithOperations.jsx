@@ -1,5 +1,16 @@
-import { Button, Input, Tooltip } from '@heroui/react';
-import { ArrowDown, ArrowUp, BookmarkPlus, Folder, FolderMinus, FolderPlus, FolderX, LayoutGrid, LayoutList, Sparkles } from 'lucide-react';
+import { Button, Input, Tooltip, toast } from '@heroui/react';
+import {
+  ArrowDown,
+  ArrowUp,
+  BookmarkPlus,
+  Folder,
+  FolderMinus,
+  FolderPlus,
+  FolderX,
+  LayoutGrid,
+  LayoutList,
+  Sparkles,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,9 +18,18 @@ import { useAppStore } from '../../store/useAppStore';
 import BookmarkCard from '../bookmark/BookmarkCard';
 import { FolderContextMenu } from './FolderContextMenu';
 
-export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId, folderId, allFolderIds, onRefresh, workspaceColor }) {
+export function FolderWithOperations({
+  path,
+  bookmarks,
+  clickCounts,
+  workspaceId,
+  folderId,
+  parentId,
+  onRefresh,
+  workspaceColor,
+}) {
   const { t } = useTranslation();
-  const { folderViewModes, setFolderViewMode, getFolderViewMode, iconSize } = useAppStore();
+  const { setFolderViewMode, getFolderViewMode, iconSize } = useAppStore();
   const viewMode = getFolderViewMode(path);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -143,9 +163,43 @@ export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId
   }, [folderId, folderName]);
 
   // 文件夹顺序
-  const handleFolderOrder = () => {
-    // 如果当前文件夹的index还没到0，则可以往前移动；index不是最大值则可以往后移动；
-    // 只能往前往后一步一步移动，不能直接跳到最前面或者最后面
+  // MARK function up
+  const handleFolderMoveUp = async (folderId, parentId) => {
+    const children = await chrome.bookmarks.getChildren(parentId);
+    const index = children.findIndex((x) => x.id === folderId);
+    console.debug('当前文件夹的index', index);
+    if (index > 0) {
+      try {
+        await chrome.bookmarks.move(folderId, {
+          index: index - 1,
+        });
+      } catch (error) {
+        toast.danger(t('moveFolderFailed'), {
+          description: error.message,
+        });
+      }
+    } else {
+      toast.danger(t('moveAlreadyTop'));
+    }
+  };
+
+  // MARK founction down
+  const handleFolderMoveDown = async (folderId, parentId) => {
+    const children = await chrome.bookmarks.getChildren(parentId);
+    const index = children.findIndex((x) => x.id === folderId);
+    if (index < children.length - 1) {
+      try {
+        await chrome.bookmarks.move(folderId, {
+          index: index + 2,
+        });
+      } catch (error) {
+        toast.danger(t('moveFolderFailed'), {
+          description: error.message,
+        });
+      }
+    } else {
+      toast.danger(t('moveAlreadyBottom'));
+    }
   };
 
   // 右键菜单
@@ -284,13 +338,8 @@ export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId
         <div className='flex flex-0 items-center gap-1'>
           <Tooltip delay={300}>
             <Button
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent('move-folder-upward', {
-                    detail: { folderId },
-                  }),
-                );
-              }}
+              // MARK move up
+              onPress={() => handleFolderMoveUp(folderId, parentId)}
               isIconOnly
               variant='ghost'
               className='hover:text-primary-500 rounded-md p-1 text-mist-400 transition-colors hover:bg-mist-100'>
@@ -305,13 +354,8 @@ export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId
           </Tooltip>
           <Tooltip delay={300}>
             <Button
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent('move-folder-downward', {
-                    detail: { folderId },
-                  }),
-                );
-              }}
+              // MARK move down
+              onPress={() => handleFolderMoveDown(folderId, parentId)}
               isIconOnly
               variant='ghost'
               className='hover:text-primary-500 rounded-md p-1 text-mist-400 transition-colors hover:bg-mist-100'>
@@ -481,7 +525,9 @@ export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId
               className='relative'
               onDragOver={(e) => handleItemDragOver(e, index)}>
               {/* 拖拽指示线 */}
-              {dragOverIndex === index && <div className='bg-primary-500 absolute top-0 right-0 left-0 z-10 h-0.5 -translate-y-1 rounded-full' />}
+              {dragOverIndex === index && (
+                <div className='bg-primary-500 absolute top-0 right-0 left-0 z-10 h-0.5 -translate-y-1 rounded-full' />
+              )}
               <BookmarkCard
                 bookmark={bookmark}
                 viewMode='list'
@@ -504,7 +550,9 @@ export function FolderWithOperations({ path, bookmarks, clickCounts, workspaceId
               key={bookmark.id}
               className='relative'
               onDragOver={(e) => handleItemDragOver(e, index)}>
-              {dragOverIndex === index && <div className='bg-primary-500 absolute top-0 bottom-0 -left-2 z-10 w-0.5 rounded-full' />}
+              {dragOverIndex === index && (
+                <div className='bg-primary-500 absolute top-0 bottom-0 -left-2 z-10 w-0.5 rounded-full' />
+              )}
               <BookmarkCard
                 bookmark={bookmark}
                 viewMode={viewMode}

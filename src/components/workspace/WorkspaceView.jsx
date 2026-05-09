@@ -8,23 +8,28 @@ import { useAppStore } from '../../store/useAppStore';
 import { FolderWithOperations } from './FolderWithOperations';
 import UngroupedBookmarks from './UngroupedBookmarks';
 
-/** 递归展平书签树，为每个书签记录完整文件夹路径 返回: groups (Map<pathString, [bookmarks]>) + directBookmarks 同时返回 folderIdMap (pathString → folderId) 用于跨文件夹移动 */
-function flattenBookmarks(items, parentPath = [], parentFolderIds = []) {
+/**
+ * 递归展平书签树，为每个书签记录完整文件夹路径 返回: groups ( Map<pathString, [bookmarks]> ) + directBookmarks 同时返回 folderIdMap (pathString →
+ * folderId) 用于跨文件夹移动
+ */
+function flattenBookmarks(items, parentPath = [], parentFolderIds = [], parentId = null) {
   const groups = new Map();
   const directBookmarks = [];
-  const folderIdMap = new Map(); // pathString → folderId (最深层的子文件夹 ID)
+  const folderIdMap = new Map(); // pathString → {folderId, parentId} / folderId是最深层的子文件夹ID
 
   for (const item of items) {
     if (item.url) {
+      // bookmark
       if (parentPath.length > 0) {
         const pathKey = parentPath.join(' / ');
         if (!groups.has(pathKey)) groups.set(pathKey, []);
         groups.get(pathKey).push({
           ...item,
-          parentId: parentFolderIds[parentFolderIds.length - 1],
+          parentId: item.parentId,
         });
-        // 记录路径到文件夹 ID 的映射
-        folderIdMap.set(pathKey, parentFolderIds[parentFolderIds.length - 1]);
+        // MARK flatten bookmark
+        const folderIdPair = { id: item.parentId, parentId: parentFolderIds[parentFolderIds.length - 2] ?? parentId };
+        folderIdMap.set(pathKey, folderIdPair);
       } else {
         directBookmarks.push({
           ...item,
@@ -32,12 +37,13 @@ function flattenBookmarks(items, parentPath = [], parentFolderIds = []) {
         });
       }
     } else if (item.children !== undefined) {
-      // 这是一个子文件夹
+      // folder
       const subPath = [...parentPath, item.title];
       const subFolderIds = [...parentFolderIds, item.id];
       // 记录此文件夹的路径和 ID
-      folderIdMap.set(subPath.join(' / '), item.id);
-      const sub = flattenBookmarks(item.children, subPath, subFolderIds);
+      const folderIdPair = { id: item.id, parentId: item.parentId };
+      folderIdMap.set(subPath.join(' / '), folderIdPair);
+      const sub = flattenBookmarks(item.children, subPath, subFolderIds, item.parentId);
       for (const [path, bookmarks] of sub.groups) {
         if (!groups.has(path)) groups.set(path, []);
         groups.get(path).push(...bookmarks);
@@ -104,7 +110,7 @@ function WorkspaceView({ workspaceId }) {
           folder.title,
           (folder.children || []).map((b) => ({ ...b, parentId: folder.id })),
         );
-        folderIdMap.set(folder.title, folder.id);
+        folderIdMap.set(folder.title, { id: folder.id, parentId: folder.parentId });
       }
       setFlatData({ groups, directBookmarks, folderIdMap });
     } finally {
@@ -277,19 +283,23 @@ function WorkspaceView({ workspaceId }) {
       )}
 
       {/* 按路径分组的书签 - 每组独立视图模式 + 拖拽支持 */}
-      {Array.from(groups.entries()).map(([path, pathBookmarks]) => (
-        <FolderWithOperations
-          key={path}
-          path={path}
-          bookmarks={pathBookmarks}
-          clickCounts={clickCounts}
-          workspaceId={workspaceId}
-          folderId={folderIdMap.get(path)}
-          allFolderIds={folderIdMap}
-          onRefresh={buildFlatData}
-          workspaceColor={wsColor}
-        />
-      ))}
+      {Array.from(groups.entries()).map(([path, pathBookmarks]) => {
+        const { id, parentId } = folderIdMap.get(path);
+        return (
+          <FolderWithOperations
+            key={path}
+            path={path}
+            bookmarks={pathBookmarks}
+            clickCounts={clickCounts}
+            workspaceId={workspaceId}
+            folderId={id}
+            parentId={parentId}
+            allFolderIds={folderIdMap}
+            onRefresh={buildFlatData}
+            workspaceColor={wsColor}
+          />
+        );
+      })}
 
       {directBookmarks.length > 0 && ungroupedBookmarkPosition === 'ungroup_bottom' && (
         <UngroupedBookmarks
