@@ -1,10 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { resolve } from 'path';
+
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import lucidePreprocess from 'vite-plugin-lucide-preprocess';
 
 export default defineConfig({
   base: './',
-  plugins: [react()],
+  plugins: [lucidePreprocess(), react(), tailwindcss()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -23,4 +26,11 @@ export default defineConfig({
     },
   },
   publicDir: 'public',
-})
+  optimizeDeps: {
+    output: {
+      advancedChunks: {
+        groups: [{ name: 'vendor', test: /\/react(?:-dom)?/ }],
+      },
+    },
+  },
+});

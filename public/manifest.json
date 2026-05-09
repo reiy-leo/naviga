@@ -1,13 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Naviga - New Tab Bookmarks",
+  "name": "Naviga",
   "version": "1.0.0",
-  "description": "Edge style bookmark navigation for your new tab",
-  "permissions": [
-    "bookmarks",
-    "storage",
-    "tabs"
-  ],
+  "description": "Workspace-based bookmark navigation for Edge new tab",
+  "permissions": ["bookmarks", "storage", "tabs", "newtab"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

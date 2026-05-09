@@ -1,97 +1,93 @@
-import { useAppStore } from '../../store/useAppStore'
-import { Button, Tooltip } from "@nextui-org/react";
-import { Settings, Plus } from 'lucide-react'
+import { Button, Tooltip } from '@heroui/react';
+import { Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-function NavBar({ onSettingsClick, onAddBookmark, onLogoClick }) {
-  const { workspaces, currentWorkspace, setCurrentWorkspace, tabDisplay, wsMeta } = useAppStore()
-  
+import { useAppStore } from '../../store/useAppStore';
+
+function NavBar({ onSettingsClick, onLogoClick }) {
+  const { workspaces, currentWorkspace, setCurrentWorkspace, tabDisplay, wsMeta, navbarIconSize } = useAppStore();
+
+  const navbarItemSize = () => {
+    return navbarIconSize.replace('nbi_', 'text-');
+  };
+
+  const { t } = useTranslation();
+
   return (
-    <nav className="flex items-center gap-4 mb-10">
+    <nav className='mb-10 flex items-center gap-1'>
       {/* Logo */}
-      <button
+      <Button
         onClick={onLogoClick}
-        className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
-      >
-        <img src="/logo.png?v=20260503" alt="Naviga" className="w-9 h-9 rounded-xl object-contain" />
-        <span className="font-semibold text-lg text-foreground">aviga</span>
-      </button>
-      
+        variant='ghost'>
+        <img
+          src='/logo.png'
+          alt='Naviga'
+          className='h-6 w-6 rounded-xl object-contain'
+        />
+      </Button>
+
       {/* Workspace Tabs - scrollable, no scrollbar */}
-      <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1 w-max">
+      <div className='no-scrollbar min-w-0 flex-1 overflow-x-auto'>
+        <div className='flex w-max items-center gap-1'>
           {/* All tab */}
-          <button
-            onClick={() => setCurrentWorkspace('all')}
-            className={`
-              px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap
-              ${currentWorkspace === 'all' 
-                ? 'bg-default-200 dark:bg-default-100 text-foreground' 
-                : 'text-default-500 hover:text-foreground hover:bg-default-100'
-              }
-            `}
-          >
-            ⭐ 收藏
-          </button>
-          
+          <Tooltip delay={250}>
+            <Button
+              onClick={() => setCurrentWorkspace('all')}
+              variant='ghost'
+              className={`rounded-xl px-4 py-2 font-medium whitespace-nowrap transition-colors ${navbarItemSize()} ${
+                currentWorkspace === 'all' ? 'text-foreground bg-mist-200 dark:bg-mist-100' : 'hover:text-foreground text-mist-500 hover:bg-mist-100'
+              } `}>
+              {tabDisplay === 'iconOnly' ? '⭐' : tabDisplay === 'textOnly' ? t('allFavorites') : '⭐ ' + t('allFavorites')}
+            </Button>
+            <Tooltip.Content showArrow>
+              <Tooltip.Arrow />
+              <p>{tabDisplay === 'iconOnly' && t('allFavorites')}</p>
+            </Tooltip.Content>
+          </Tooltip>
+
           {workspaces.map((ws) => {
-            const meta = wsMeta[ws.id]
-            const emoji = meta?.emoji || '📁'
-            const text = meta?.text || ws.title
-            const isActive = currentWorkspace === ws.id
-            
-            // 根据显示模式决定标签内容
-            let label = text
-            if (tabDisplay !== 'textOnly') {
-              label = `${emoji} ${text}`
-            }
-            if (tabDisplay === 'iconOnly') {
-              label = emoji
-            }
-            
+            const meta = wsMeta[ws.id];
+            const emoji = meta?.emoji || '📁';
+            const text = meta?.text || ws.title;
+            const isActive = currentWorkspace === ws.id;
+
             return (
-              <button
-                key={ws.id}
-                onClick={() => setCurrentWorkspace(ws.id)}
-                className={`
-                  px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap
-                  ${isActive 
-                    ? 'bg-default-200 dark:bg-default-100 text-foreground' 
-                    : 'text-default-500 hover:text-foreground hover:bg-default-100'
-                  }
-                `}
-              >
-                {label}
-              </button>
-            )
+              <Tooltip delay={250}>
+                <Button
+                  key={ws.id}
+                  variant='ghost'
+                  onClick={() => setCurrentWorkspace(ws.id)}
+                  className={`rounded-xl px-4 py-2 font-medium whitespace-nowrap transition-colors ${navbarItemSize()} ${isActive ? 'text-foreground bg-mist-200 dark:bg-mist-800' : 'hover:text-foreground text-mist-500 hover:bg-mist-100'} `}>
+                  {tabDisplay === 'iconOnly' ? emoji : tabDisplay === 'textOnly' ? text : `${emoji} ${text}`}
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  <p>{tabDisplay === 'iconOnly' && text}</p>
+                </Tooltip.Content>
+              </Tooltip>
+            );
           })}
         </div>
       </div>
-      
+
       {/* Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Tooltip content="添加书签">
+      <div className='flex flex-0 items-center gap-2'>
+        <Tooltip delay={250}>
           <Button
             isIconOnly
-            variant="light"
-            onPress={onAddBookmark}
-            className="rounded-xl"
-          >
-            <Plus size={20} />
-          </Button>
-        </Tooltip>
-        <Tooltip content="设置">
-          <Button
-            isIconOnly
-            variant="light"
+            variant='light'
             onPress={onSettingsClick}
-            className="rounded-xl"
-          >
+            className='rounded-xl'>
             <Settings size={20} />
           </Button>
+          <Tooltip.Content showArrow>
+            <Tooltip.Arrow />
+            <p>设置</p>
+          </Tooltip.Content>
         </Tooltip>
       </div>
     </nav>
-  )
+  );
 }
 
-export default NavBar
+export default NavBar;

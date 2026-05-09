@@ -1,6 +1,100 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import '@heroui/react/styles';
+
+/* HeroUI 变量 fallback —— 解决 Tailwind v4 下 bg-content1 等类透明问题 */
+:root {
+  --heroui-content1: 24 24 27;
+  /* zinc-900 */
+  --heroui-content2: 39 39 42;
+  /* zinc-800 */
+  --heroui-content3: 63 63 68;
+  /* zinc-600 */
+  --heroui-default-200: 82 82 91;
+  /* zinc-500 */
+  --heroui-default-100: 63 63 68;
+  /* zinc-600 */
+  --heroui-default-300: 113 113 122;
+  /* zinc-500 */
+  --heroui-default-400: 161 161 170;
+  /* zinc-400 */
+  --heroui-default-500: 212 212 216;
+  /* zinc-300 */
+  --heroui-background: 0 0 0;
+  /* black */
+  --heroui-primary: 99 102 241;
+  /* indigo-500 */
+  --heroui-danger: 239 68 68;
+  /* red-500 */
+  --heroui-warning: 234 179 8;
+  /* yellow-500 */
+}
+
+html:not(.dark) {
+  --heroui-content1: 255 255 255;
+  /* white */
+  --heroui-content2: 244 244 245;
+  /* zinc-100 */
+  --heroui-content3: 228 228 231;
+  /* zinc-200 */
+  --heroui-default-200: 212 212 216;
+  /* zinc-300 */
+  --heroui-default-100: 228 228 231;
+  /* zinc-200 */
+  --heroui-default-300: 161 161 170;
+  /* zinc-400 */
+  --heroui-default-400: 113 113 122;
+  /* zinc-500 */
+  --heroui-default-500: 82 82 91;
+  /* zinc-600 */
+  --heroui-background: 255 255 255;
+  /* white */
+}
+
+/* 确保 HeroUI 类有可见背景 */
+[class*='bg-content1'] {
+  background-color: rgba(var(--heroui-content1));
+}
+
+[class*='bg-content2'] {
+  background-color: rgba(var(--heroui-content2));
+}
+
+[class*='bg-content3'] {
+  background-color: rgba(var(--heroui-content3));
+}
+
+[class*='border-mist-200'] {
+  border-color: rgba(var(--heroui-default-200));
+}
+
+[class*='border-mist-300'] {
+  border-color: rgba(var(--heroui-default-300));
+}
+
+[class*='text-mist-400'] {
+  color: rgba(var(--heroui-default-400));
+}
+
+[class*='text-mist-500'] {
+  color: rgba(var(--heroui-default-500));
+}
+
+[class*='text-mist-600'] {
+  color: rgba(113 113 122);
+}
+
+[class*='hover:bg-mist-100']:hover {
+  background-color: rgba(var(--heroui-default-100));
+}
+
+[class*='hover:bg-danger-50']:hover {
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+/* bg-background fallback */
+[class*='bg-background'] {
+  background-color: rgba(var(--heroui-background));
+}
 
 /* Ollama-inspired Minimalist Design with HeroUI */
 
@@ -28,6 +122,7 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -38,6 +133,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -49,6 +145,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -89,40 +186,97 @@
 }
 
 /* ── Background Presets ── */
-[data-background="default"] .app {
+
+:root {
+  .bg-swatch-deep {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0, 0.2) 2%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-subtle {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241, 0.2) 2%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-bluetint {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(22, 111, 254, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 165, 241, 0.2) 2%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-warntint {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36, 0.6) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22, 0.2) 2%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-default {
+    background: rgba(var(--heroui-background));
+  }
+  .bg-swatch-deep2 {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0, 0.6) 4%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-subtle2 {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241, 0.6) 4%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-bluetint2 {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(22, 111, 254, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 165, 241, 0.6) 4%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-warntint2 {
+    background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36, 0.6) 12%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22, 0.6) 4%, rgba(var(--heroui-background))));
+  }
+  .bg-swatch-default2 {
+    background: rgba(var(--heroui-background));
+  }
+}
+
+[data-background='default'] .modal__dialog {
+  background: rgba(var(--heroui-background));
+}
+
+[data-background='default'] .app {
   background: transparent;
 }
 
-[data-background="subtle"] .app {
+[data-background='subtle'] .modal__dialog {
+  background: linear-gradient(180deg, color-mix(in srgb, rgba(99, 102, 241) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background))));
+}
+
+[data-background='subtle'] .app {
   background: linear-gradient(180deg, rgba(99, 102, 241, 0.03) 0%, transparent 60%);
 }
 
-[data-background="deep"] .app {
+[data-background='deep'] .modal__dialog {
+  background: linear-gradient(180deg, color-mix(in srgb, rgba(0, 0, 0) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(0, 0, 0) 2%, rgba(var(--heroui-background))));
+}
+
+[data-background='deep'] .app {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, transparent 50%);
 }
 
-[data-background="deep"] .app:not(.dark .app) {
+[data-background='deep'] .app:not(.dark .app) {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.06) 0%, transparent 50%);
 }
 
-[data-background="blueTint"] .app {
+[data-background='blueTint'] .modal__dialog {
+  background: linear-gradient(180deg, color-mix(in srgb, rgba(59, 130, 246) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(99, 102, 241) 2%, rgba(var(--heroui-background))));
+}
+
+[data-background='blueTint'] .app {
   background: linear-gradient(160deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.03) 40%, transparent 70%);
 }
 
-[data-background="warmTint"] .app {
+[data-background='warmTint'] .modal__dialog {
+  background: linear-gradient(180deg, color-mix(in srgb, rgba(251, 191, 36) 6%, rgba(var(--heroui-background))), color-mix(in srgb, rgba(249, 115, 22) 2%, rgba(var(--heroui-background))));
+}
+
+[data-background='warmTint'] .app {
   background: linear-gradient(160deg, rgba(251, 191, 36, 0.05) 0%, rgba(249, 115, 22, 0.03) 40%, transparent 70%);
 }
 
 /* Light mode overrides */
-html:not(.dark) [data-background="subtle"] .app {
+html:not(.dark) [data-background='subtle'] .modal__dialog,
+html:not(.dark) [data-background='subtle'] .app {
   background: linear-gradient(180deg, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
 }
 
-html:not(.dark) [data-background="blueTint"] .app {
+html:not(.dark) [data-background='blueTint'] .modal__dialog,
+html:not(.dark) [data-background='blueTint'] .app {
   background: linear-gradient(160deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.04) 40%, transparent 70%);
 }
 
-html:not(.dark) [data-background="warmTint"] .app {
+html:not(.dark) [data-background='warmTint'] .modal__dialog,
+html:not(.dark) [data-background='warmTint'] .app {
   background: linear-gradient(160deg, rgba(251, 191, 36, 0.08) 0%, rgba(249, 115, 22, 0.04) 40%, transparent 70%);
 }
 

@@ -1,63 +1,145 @@
-import { useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useAppStore } from '../../store/useAppStore'
+import { Button } from '@heroui/react';
+import { BookmarkPlus, Folder, Pencil, RefreshCw, Star, StarOff, Trash2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
-function ContextMenu({ x, y, bookmark, onClose }) {
-  const { t } = useTranslation()
-  const handleEdit = () => {
-    // 触发编辑事件
-    window.dispatchEvent(new CustomEvent('edit-bookmark', { detail: bookmark }))
-    onClose()
-  }
-  
-  const handleDelete = async () => {
-    if (confirm(t('confirmDelete') || '确定要删除此书签吗？')) {
-      try {
-        await chrome.bookmarks.remove(bookmark.id)
-      } catch (error) {
-        console.error('Failed to delete bookmark:', error)
-      }
-    }
-    onClose()
-  }
-  
-  const handleAddSub = () => {
-    // 触发添加子书签事件
-    window.dispatchEvent(new CustomEvent('add-sub-bookmark', { detail: bookmark }))
-    onClose()
-  }
-  
-  // 点击其他地方关闭菜单
+import { useAppStore } from '../../store/useAppStore';
+
+export function ContextMenu({ x, y, bookmark, isFav, onClose }) {
+  const { t } = useTranslation();
+  const { toggleFavorite } = useAppStore();
+  const menuRef = useRef(null);
+
+  const menuWidth = 180;
+  const menuHeight = 240;
+  let adjustedX = x;
+  let adjustedY = y;
+  if (adjustedX + menuWidth > window.innerWidth) adjustedX = window.innerWidth - menuWidth - 8;
+  if (adjustedY + menuHeight > window.innerHeight) adjustedY = window.innerHeight - menuHeight - 8;
+
   useEffect(() => {
-    const handleClick = () => onClose()
-    setTimeout(() => {
-      document.addEventListener('click', handleClick)
-    }, 0)
-    return () => document.removeEventListener('click', handleClick)
-  }, [onClose])
-  
-  // 确保菜单不会超出视窗
-  const adjustedX = x + 160 > window.innerWidth ? x - 160 : x
-  const adjustedY = y + 120 > window.innerHeight ? y - 120 : y
-  
+    const handleClick = (e) => {
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      onClose();
+    };
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      onClose();
+    };
+    const handleScroll = () => onClose();
+    const timer = setTimeout(() => {
+      window.addEventListener('click', handleClick);
+      window.addEventListener('contextmenu', handleContextMenu);
+      window.addEventListener('scroll', handleScroll, true);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('click', handleClick);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [onClose]);
+
   return (
     <div
-      className="context-menu"
+      ref={menuRef}
+      className='bg-content1 animate-slide-down fixed z-9999 max-w-55 min-w-45 rounded-md border border-mist-200 py-1 shadow-lg'
       style={{ left: adjustedX, top: adjustedY }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="context-menu-item" onClick={handleEdit}>
-        ✏️ 编辑
-      </div>
-      <div className="context-menu-item" onClick={handleAddSub}>
-        ➕ 添加子书签
-      </div>
-      <div className="context-menu-divider" />
-      <div className="context-menu-item danger" onClick={handleDelete}>
-        🗑️ 删除
-      </div>
-    </div>
-  )
-}
+      onClick={(e) => e.stopPropagation()}>
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+        variant='ghost'
+        onClick={() => {
+          toggleFavorite(bookmark.id);
+          onClose();
+        }}>
+        {isFav ? (
+          <StarOff
+            size={16}
+            className='text-yellow-500'
+          />
+        ) : (
+          <Star
+            size={16}
+            className='text-mist-400'
+          />
+        )}
+        <span>{isFav ? t('unfavorite') : t('favorite')}</span>
+      </Button>
 
-export default ContextMenu
+      {/* 编辑书签 */}
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+        variant='ghost'
+        onClick={() => {
+          window.__navigaActions?.openEditModal(bookmark, null, null, null);
+          onClose();
+        }}>
+        <Pencil
+          size={16}
+          className='text-mist-400'
+        />
+        <span>{t('edit')}</span>
+      </Button>
+
+      {/* 添加子书签 */}
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+        variant='ghost'
+        onClick={() => {
+          window.__navigaActions?.openEditModal(null, bookmark, null, null);
+          onClose();
+        }}>
+        <BookmarkPlus
+          size={16}
+          className='text-mist-400'
+        />
+        <span>{t('addSubBookmark')}</span>
+      </Button>
+
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+        variant='ghost'
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('refresh-icon', { detail: bookmark }));
+          onClose();
+        }}>
+        <RefreshCw
+          size={16}
+          className='text-mist-400'
+        />
+        <span>{t('refreshIcon')}</span>
+      </Button>
+
+      <div className='my-1 border-t border-mist-200' />
+
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+        variant='ghost'
+        onClick={(e) => {
+          e.stopPropagation();
+          window.__navigaActions?.openMoveModal(bookmark);
+          onClose();
+        }}>
+        <Folder
+          size={16}
+          className='text-mist-400'
+        />
+        <span>{t('moveToWorkspace')}</span>
+      </Button>
+
+      <Button
+        className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-red-950 transition-colors hover:bg-red-50'
+        variant='ghost'
+        onClick={() => {
+          if (confirm(t('confirmDelete'))) {
+            chrome.bookmarks.remove(bookmark.id);
+          }
+          onClose();
+        }}>
+        <Trash2 size={16} />
+        <span>{t('delete')}</span>
+      </Button>
+    </div>
+  );
+}

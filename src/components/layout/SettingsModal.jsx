@@ -1,204 +1,244 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useAppStore } from '../../store/useAppStore'
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Tabs,
-  Tab,
-  Button,
-  Select,
-  SelectItem,
-  Input,
-  Switch,
-  Chip,
-  Divider,
-  Tooltip,
-} from "@nextui-org/react";
-import { X, Github, ExternalLink, Upload, Download, RefreshCw, Plus, Trash2 } from 'lucide-react'
-import { importBookmarksFromFile } from '../../utils/importBookmarks'
-import { syncToGithub, restoreFromGithub, testGithubToken } from '../../utils/githubSync'
+import { Tabs, Modal, Label, Link, Button, Select, ListBox, Input, Separator, Description, Tooltip, ColorPicker, ColorArea, ColorSlider, ColorSwatch, ColorSwatchPicker, Radio, RadioGroup, toast } from '@heroui/react';
+import { US, CN, JP } from 'country-flag-icons/react/3x2';
+import { Upload, Download, RefreshCw, Plus, SquareX, Link as LinkIcon, Sun, Moon, Laptop, Image, Cannabis, ChevronUp, ChevronDown, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-const WORKSPACE_COLORS = [
-  // 蓝色系
-  '#3b82f6', '#2563eb', '#1d4ed8', '#60a5fa',
-  // 靛/紫色系
-  '#6366f1', '#7c3aed', '#818cf8', '#a78bfa',
-  // 红色系
-  '#ef4444', '#dc2626', '#f87171', '#fb7185',
-  // 橙色系
-  '#f97316', '#ea580c', '#fb923c',
-  // 黄色系
-  '#eab308', '#fbbf24',
-  // 绿色系
-  '#22c55e', '#16a34a', '#4ade80', '#34d399',
-  // 青/蓝绿系
-  '#06b6d4', '#14b8a6', '#2dd4bf',
-  // 粉/玫红系
-  '#ec4899', '#f43f5e', '#f472b6',
-  // 灰色系
-  '#64748b', '#94a3b8',
-]
+import { colorToHex, countEmojis, semanticLength } from '../../lib/utils';
+import { useAppStore } from '../../store/useAppStore';
+import { syncToGithub, restoreFromGithub, testGithubToken } from '../../utils/githubSync';
+import { importBookmarksFromFile } from '../../utils/importBookmarks';
 
-const THEMES = [
-  { key: 'light', label: '浅色' },
-  { key: 'dark', label: '深色' },
-  { key: 'system', label: '跟随系统' },
-]
+const navbarIconSizes = ['nbi_sm', 'nbi_base', 'nbi_lg'];
 
-const BACKGROUNDS = [
-  { key: 'default', label: '默认' },
-  { key: 'subtle', label: '柔和' },
-  { key: 'deep', label: '深邃' },
-  { key: 'blueTint', label: '蓝色调' },
-  { key: 'warmTint', label: '暖色调' },
-]
+const ungroupedBookmarkPositions = ['ungroup_top', 'ungroup_bottom'];
+const ungroupedBookmarkPositionMap = {
+  ungroup_top: <ArrowUpToLine className='h-12 w-12' />,
+  ungroup_bottom: <ArrowDownToLine className='h-12 w-12' />,
+};
 
-const ICON_SIZES = [
-  { key: 'small', label: '小' },
-  { key: 'medium', label: '中' },
-  { key: 'large', label: '大' },
-]
+const cardRoundSizes = ['card_small', 'card_large', 'card_full'];
+const cardRoundSizeMap = {
+  card_small: <div class='h-full w-full rounded-md border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+  card_large: <div class='h-full w-full rounded-xl border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+  card_full: <div class='h-full w-full rounded-full border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+};
 
-const TAB_DISPLAYS = [
-  { key: 'iconOnly', label: '仅图标' },
-  { key: 'textOnly', label: '仅文字' },
-  { key: 'both', label: '图标+文字' },
-]
+const THEMES = ['light', 'dark', 'system'];
+const THEMES_ICONS = {
+  light: (
+    <Sun
+      size={22}
+      className='flex-1 text-yellow-400'
+    />
+  ),
+  dark: (
+    <Moon
+      size={22}
+      className='flex-1 text-blue-400'
+    />
+  ),
+  system: (
+    <Laptop
+      size={22}
+      className='flex-1 text-mist-400'
+    />
+  ),
+};
+
+const BACKGROUNDS = ['default', 'subtle', 'deep', 'blueTint', 'warmTint'];
+
+const backgroundStyles = {
+  default: ['bg-swatch-default', 'bg-swatch-default2'],
+  subtle: ['bg-swatch-subtle', 'bg-swatch-subtle2'],
+  deep: ['bg-swatch-deep', 'bg-swatch-deep2'],
+  blueTint: ['bg-swatch-bluetint', 'bg-swatch-bluetint2'],
+  warmTint: ['bg-swatch-warntint', 'bg-swatch-warntint2'],
+};
+
+const ICON_SIZES = ['small', 'medium', 'large'];
+
+const ICON_SIZE_ICONS = {
+  small: (
+    <Image
+      size={12}
+      className='flex-1 rounded text-mist-400'
+    />
+  ),
+  medium: (
+    <Image
+      size={17}
+      className='flex-1 rounded text-mist-400'
+    />
+  ),
+  large: (
+    <Image
+      size={22}
+      className='flex-1 rounded text-mist-400'
+    />
+  ),
+};
+
+const TAB_DISPLAYS = ['iconOnly', 'textOnly', 'both'];
+
+const ON_STARTUPS = ['openHomepage', 'openLastWorkspace', 'openSpecificWorkspace'];
+
+const LANGS = ['zh', 'en', 'ja'];
+const LANG_ICONS = {
+  zh: (
+    <CN
+      className='flex-1 rounded'
+      width={22}
+      height={22}
+    />
+  ),
+  en: (
+    <US
+      className='flex-1 rounded'
+      width={22}
+      height={22}
+    />
+  ),
+  ja: (
+    <JP
+      className='flex-1 rounded'
+      width={22}
+      height={22}
+    />
+  ),
+};
 
 function SettingsModal({ onClose, defaultTab = 'general' }) {
-  const [activeTab, setActiveTab] = useState(defaultTab)
-  const { t, i18n } = useTranslation()
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const { t, i18n } = useTranslation();
 
   const {
-    theme, setTheme,
-    background, setBackground,
-    iconSize, setIconSize,
-    tabDisplay, setTabDisplay,
-    startupMode, setStartupMode,
-    startupWorkspace, setStartupWorkspace,
-    language, setLanguage,
+    theme,
+    setTheme,
+    background,
+    setBackground,
+    iconSize,
+    setIconSize,
+    tabDisplay,
+    setTabDisplay,
+    startupMode,
+    setStartupMode,
+    startupWorkspace,
+    setStartupWorkspace,
+    language,
+    setLanguage,
     workspaces,
-    wsMeta, updateWsMeta, initWorkspaces,
-    githubPat, setGithubPat,
-    githubGistUrl, setGithubGistUrl,
-    githubRepoUrl, setGithubRepoUrl,
-  } = useAppStore()
+    wsMeta,
+    updateWsMeta,
+    initWorkspaces,
+    githubPat,
+    setGithubPat,
+    githubGistUrl,
+    setGithubGistUrl,
+    githubRepoUrl,
+    setGithubRepoUrl,
+    defaultWorkspaceEmoji,
+    // setDefaultWorkspaceEmoji,
+    cardRoundSize,
+    setCardRoundSize,
+    ungroupedBookmarkPosition,
+    setUngroupedBookmarkPosition,
+    navbarIconSize,
+    setNavbarIconSize,
+  } = useAppStore();
 
   const handleLanguageChange = (lang) => {
-    setLanguage(lang)
-    i18n.changeLanguage(lang)
-  }
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+  };
 
+  const getNavbarIconSize = (opt) => {
+    return opt.replace('nbi_', 'text-');
+  };
 
-  // 测试 GitHub Token（使用 Octokit 验证读写权限）
   const handleTestToken = async () => {
     if (!githubPat) {
-      alert(t('testTokenFailed') || '请先填写 Token')
-      return
+      alert(t('testTokenFailed') || '请先填写 Token');
+      return;
     }
     try {
-      // 使用用户输入的 repo URL，或默认值
-      const repo = githubRepoUrl && githubRepoUrl.trim() ? githubRepoUrl.trim() : 'https://github.com/reiy-leo/naviga'
-      const result = await testGithubToken(githubPat, repo)
+      const repo = githubRepoUrl && githubRepoUrl.trim() ? githubRepoUrl.trim() : 'https://github.com/reiy-leo/naviga';
+      const result = await testGithubToken(githubPat, repo);
       if (result.success) {
-        alert(t('testTokenSuccess') || 'Token 有效，可写入仓库！')
+        alert(t('testTokenSuccess') || 'Token 有效，可写入仓库！');
       } else {
-        throw new Error(result.error)
+        throw new Error(result.error);
       }
     } catch (error) {
-      const msg = error.message || ''
-      let displayMsg = t('testTokenFailed') || 'Token 无效或无法写入仓库'
-      if (msg.startsWith('invalidRepoUrl')) {
-        displayMsg += ': 无效的仓库 URL'
-      } else if (msg.startsWith('repoAccessFailed')) {
-        displayMsg += ': 无法访问仓库（读权限失败）'
-      } else if (msg.startsWith('writeFailed')) {
-        displayMsg += ': 无法写入仓库（写权限失败）'
-      } else if (msg.startsWith('unknownError')) {
-        displayMsg += ': 未知错误'
-      }
-      alert(displayMsg + '\n' + msg)
+      const msg = error.message || '';
+      let displayMsg = t('testTokenFailed') || 'Token 无效或无法写入仓库';
+      if (msg.startsWith('invalidRepoUrl')) displayMsg += ': 无效的仓库 URL';
+      else if (msg.startsWith('repoAccessFailed')) displayMsg += ': 无法访问仓库（读权限失败）';
+      else if (msg.startsWith('writeFailed')) displayMsg += ': 无法写入仓库（写权限失败）';
+      else if (msg.startsWith('unknownError')) displayMsg += ': 未知错误';
+      alert(displayMsg + '\n' + msg);
     }
-  }
+  };
 
   const handleGithubSync = async () => {
     if (!githubPat) {
-      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token')
-      return
+      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token');
+      return;
     }
-
-    const result = await syncToGithub(githubPat, githubGistUrl || null)
-
+    const result = await syncToGithub(githubPat, githubGistUrl || null);
     if (result.success) {
-      // 保存 Gist URL 方便下次同步
-      if (result.gistUrl) {
-        setGithubGistUrl(result.gistUrl)
-      }
-      alert((t('syncSuccess') || '同步成功！\nGist URL: ') + result.gistUrl + '\nGist ID: ' + result.gistId)
+      if (result.gistUrl) setGithubGistUrl(result.gistUrl);
+      alert((t('syncSuccess') || '同步成功！\nGist URL: ') + result.gistUrl + '\nGist ID: ' + result.gistId);
     } else {
-      // 处理国际化错误信息
-      let errorMsg = result.error || ''
+      let errorMsg = result.error || '';
       if (errorMsg.startsWith('githubApiError')) {
-        const status = errorMsg.split(':')[1] || 'unknown'
-        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status
+        const status = errorMsg.split(':')[1] || 'unknown';
+        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status;
       } else if (errorMsg.startsWith('networkError')) {
-        const msg = errorMsg.split(':').slice(1).join(':') || ''
-        errorMsg = (t('networkError') || '网络错误: ') + msg
+        const msg = errorMsg.split(':').slice(1).join(':') || '';
+        errorMsg = (t('networkError') || '网络错误: ') + msg;
       }
-      alert((t('syncFailed') || '同步失败: ') + errorMsg)
+      alert((t('syncFailed') || '同步失败: ') + errorMsg);
     }
-  }
+  };
 
   const handleGithubRestore = async () => {
     if (!githubPat || !githubGistUrl) {
-      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token 和 Gist URL')
-      return
+      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token 和 Gist URL');
+      return;
     }
-
-    const result = await restoreFromGithub(githubPat, githubGistUrl)
-
+    const result = await restoreFromGithub(githubPat, githubGistUrl);
     if (result.success) {
-      alert(t('restoreSuccess') || '恢复成功！页面将刷新。')
-      window.location.reload()
+      alert(t('restoreSuccess') || '恢复成功！页面将刷新。');
+      window.location.reload();
     } else {
-      // 处理国际化错误信息
-      let errorMsg = result.error || ''
-      if (errorMsg.startsWith('invalidGistUrl')) {
-        errorMsg = t('invalidGistUrl') || '无效的 Gist URL'
-      } else if (errorMsg.startsWith('backupNotFound')) {
-        errorMsg = t('backupNotFound') || '备份文件不存在'
-      } else if (errorMsg.startsWith('githubApiError')) {
-        const status = errorMsg.split(':')[1] || 'unknown'
-        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status
+      let errorMsg = result.error || '';
+      if (errorMsg.startsWith('invalidGistUrl')) errorMsg = t('invalidGistUrl') || '无效的 Gist URL';
+      else if (errorMsg.startsWith('backupNotFound')) errorMsg = t('backupNotFound') || '备份文件不存在';
+      else if (errorMsg.startsWith('githubApiError')) {
+        const status = errorMsg.split(':')[1] || 'unknown';
+        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status;
       }
-      alert((t('restoreFailed') || '恢复失败: ') + errorMsg)
+      alert((t('restoreFailed') || '恢复失败: ') + errorMsg);
     }
-  }
+  };
 
   const handleImportFile = async () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
     input.onchange = async (e) => {
-      const file = e.target.files[0]
-      if (!file) return
-
-      const result = await importBookmarksFromFile(file)
-
-      if (result.success) {
-        alert(`成功导入 ${result.count} 个书签`)
-      } else {
-        alert(`导入失败: ${result.error}`)
-      }
-    }
-    input.click()
-  }
+      const file = e.target.files[0];
+      if (!file) return;
+      const result = await importBookmarksFromFile(file);
+      if (result.success) alert(`成功导入 ${result.count} 个书签`);
+      else alert(`导入失败: ${result.error}`);
+    };
+    input.click();
+  };
 
   const handleExport = () => {
-    const state = useAppStore.getState()
+    const state = useAppStore.getState();
     const exportData = {
       settings: {
         theme: state.theme,
@@ -211,424 +251,720 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       },
       clickCounts: state.clickCounts,
       subBookmarks: state.subBookmarks,
-    }
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'naviga-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'naviga-backup.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  // 删除工作区
   const handleDeleteWorkspace = async (workspaceId) => {
-    if (!confirm(t('confirmDeleteWorkspace') || '确定删除此工作区及其所有内容？')) return
+    if (!confirm(t('confirmDeleteWorkspace') || '确定删除此工作区及其所有内容？')) return;
     try {
-      await chrome.bookmarks.removeTree(workspaceId)
-      // 刷新工作区列表
-      await initWorkspaces()
+      await chrome.bookmarks.removeTree(workspaceId);
+      await initWorkspaces();
     } catch (error) {
-      console.error('Failed to delete workspace:', error)
-      alert('删除失败: ' + error.message)
+      toast.danger(t('deleteWorkspaceFailed'), {
+        description: error.message,
+      });
     }
-  }
+  };
 
   const handleCreateWorkspace = async () => {
     try {
-      // 在书签栏下创建新文件夹
-      await chrome.bookmarks.create({
-        parentId: '1',
-        title: '📁 新工作区',
-      })
-      // 刷新工作区列表
-      await initWorkspaces()
+      await chrome.bookmarks.create({ parentId: '1', title: `${defaultWorkspaceEmoji} 新工作区` });
+      await initWorkspaces();
     } catch (error) {
-      console.error('Failed to create workspace:', error)
+      console.error('Failed to create workspace:', error);
     }
-  }
+  };
+
+  const handleWorkspaceOrderUp = async (workspaceId, parentId) => {
+    const children = await chrome.bookmarks.getChildren(parentId);
+
+    const index = children.findIndex((x) => x.id === workspaceId);
+
+    if (index > 0) {
+      try {
+        await chrome.bookmarks.move(workspaceId, {
+          index: index - 1,
+        });
+        await initWorkspaces();
+      } catch (error) {
+        toast.danger('移动workspace失败 up', {
+          description: error.message,
+        });
+      }
+    } else {
+      toast.danger('移动workspace失败 up2', {});
+    }
+  };
+  const handleWorkspaceOrderDown = async (workspaceId, parentId) => {
+    const children = await chrome.bookmarks.getChildren(parentId);
+
+    const index = children.findIndex((x) => x.id === workspaceId);
+
+    if (index < children.length - 1) {
+      try {
+        await chrome.bookmarks.move(workspaceId, {
+          index: index + 2, // +2 真神奇
+        });
+        await initWorkspaces();
+      } catch (error) {
+        toast.danger('移动workspace失败 down', {
+          description: error.message,
+        });
+      }
+    } else {
+      toast.danger('移动workspace失败 down2', {});
+    }
+  };
+
+  const presets = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e'];
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      size="2xl"
-      scrollBehavior="inside"
-      classNames={{
-        base: "max-h-[80vh]",
-      }}
-    >
-      <ModalContent>
-        <ModalHeader className="flex justify-between items-center">
-          <span className="text-lg font-semibold">{t('settings') || '设置'}</span>
-        </ModalHeader>
+    <Modal>
+      <Modal.Backdrop
+        variant='transparent'
+        isOpen={!!onClose}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) onClose?.();
+        }}>
+        <Modal.Container
+          placement='center'
+          scroll='inside'>
+          <Modal.Dialog className='w-xl min-w-xl'>
+            <Modal.CloseTrigger />
+            <Modal.Header className='-m-1.5'>
+              <Modal.Heading className='mb-3 font-medium'>{t('settings')}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body
+              className='px-6 pb-6'
+              onScroll={(e) => e.stopPropagation()}>
+              <Tabs
+                selectedKey={activeTab}
+                variant='secondary'
+                onSelectionChange={(key) => {
+                  setActiveTab(key);
+                }}>
+                <Tabs.List aria-label='Settings tabs'>
+                  <Tabs.Tab id='general'>
+                    {t('general')}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id='data'>
+                    {t('data')}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id='workspace'>
+                    {t('workspace')}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id='about'>
+                    {t('about')}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                </Tabs.List>
 
-        <Tabs
-          selectedKey={activeTab}
-          onSelectionChange={setActiveTab}
-          classNames={{
-            base: "px-4",
-            tabList: "gap-2",
-            tab: "px-4 py-2",
-            panel: "overflow-y-auto max-h-[calc(80vh-8rem)]",
-          }}
-        >
-          <Tab key="general" title={t('general') || '通用'}>
-            <ModalBody className="gap-6 py-4">
-              {/* Theme */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('theme') || '主题'}</label>
-                <div className="flex gap-2 flex-wrap">
-                  {THEMES.map((opt) => (
-                    <Button
-                      key={opt.key}
-                      variant={theme === opt.key ? "solid" : "bordered"}
-                      color={theme === opt.key ? "default" : "default"}
-                      onPress={() => setTheme(opt.key)}
-                      className="flex-1 min-w-[80px]"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* Background */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('background') || '背景'}</label>
-                <div className="flex gap-2 flex-wrap">
-                  {BACKGROUNDS.map((opt) => (
-                    <Button
-                      key={opt.key}
-                      variant={background === opt.key ? "solid" : "bordered"}
-                      color={background === opt.key ? "default" : "default"}
-                      onPress={() => setBackground(opt.key)}
-                      className="flex-1 min-w-[80px]"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* Icon Size */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('iconSize') || '图标大小'}</label>
-                <div className="flex gap-2">
-                  {ICON_SIZES.map((opt) => (
-                    <Button
-                      key={opt.key}
-                      variant={iconSize === opt.key ? "solid" : "bordered"}
-                      color={iconSize === opt.key ? "default" : "default"}
-                      onPress={() => setIconSize(opt.key)}
-                      className="flex-1"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* Tab Display */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('tabDisplay') || '标签显示'}</label>
-                <div className="flex gap-2">
-                  {TAB_DISPLAYS.map((opt) => (
-                    <Button
-                      key={opt.key}
-                      variant={tabDisplay === opt.key ? "solid" : "bordered"}
-                      color={tabDisplay === opt.key ? "default" : "default"}
-                      onPress={() => setTabDisplay(opt.key)}
-                      className="flex-1"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* On Startup */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('onStartup') || '启动时'}</label>
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    {[
-                      { key: 'homepage', label: t('openHomepage') || '打开主页' },
-                      { key: 'last', label: t('openLastWorkspace') || '打开上次的工作区' },
-                      { key: 'specific', label: t('openSpecificWorkspace') || '打开指定的工作区' },
-                    ].map((opt) => (
-                      <Button
-                        key={opt.key}
-                        variant={startupMode === opt.key ? "solid" : "bordered"}
-                        color={startupMode === opt.key ? "default" : "default"}
-                        onPress={() => setStartupMode(opt.key)}
-                        className="flex-1 text-xs"
-                        size="sm"
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                  {startupMode === 'specific' && (
-                    <Select
-                      size="sm"
-                      label={t('selectWorkspace') || '选择工作区'}
-                      selectedKeys={[startupWorkspace]}
-                      onSelectionChange={(keys) => setStartupWorkspace(Array.from(keys)[0])}
-                    >
-                      <SelectItem key="all">{t('allFavorites') || '收藏'}</SelectItem>
-                      {workspaces.map((ws) => (
-                        <SelectItem key={ws.id}>
-                          {wsMeta[ws.id]?.text || ws.title}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* Language */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">{t('language') || '语言'}</label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={language === 'zh' ? "solid" : "bordered"}
-                    color={language === 'zh' ? "default" : "default"}
-                    onPress={() => handleLanguageChange('zh')}
-                    className="flex-1"
-                  >
-                    中文
-                  </Button>
-                  <Button
-                    variant={language === 'en' ? "solid" : "bordered"}
-                    color={language === 'en' ? "default" : "default"}
-                    onPress={() => handleLanguageChange('en')}
-                    className="flex-1"
-                  >
-                    English
-                  </Button>
-                  <Button
-                    variant={language === 'ja' ? "solid" : "bordered"}
-                    color={language === 'ja' ? "default" : "default"}
-                    onPress={() => handleLanguageChange('ja')}
-                    className="flex-1"
-                  >
-                    日本語
-                  </Button>
-                </div>
-              </div>
-            </ModalBody>
-          </Tab>
-
-          <Tab key="data" title={t('data') || '数据'}>
-            <ModalBody className="gap-6 py-4">
-              {/* Import */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">{t('importBookmarks') || '导入书签'}</h3>
-                <p className="text-xs text-default-500 mb-3">{t('importHint') || '从浏览器导出的书签文件导入'}</p>
-                <Button
-                  variant="bordered"
-                  onPress={handleImportFile}
-                  startContent={<Upload size={16} />}
-                >
-                  {t('selectFile') || '选择文件'}
-                </Button>
-              </div>
-
-              <Divider />
-
-              {/* GitHub Sync */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">{t('syncToGithub') || '同步到 GitHub'}</h3>
-                <p className="text-xs text-default-500 mb-1">{t('syncHint') || '将数据同步到 GitHub Gist'}</p>
-                <div className="flex flex-col gap-3">
-                  <Input
-                    type="password"
-                    label="Personal Access Token"
-                    placeholder="ghp_xxxxxxxxxxxx"
-                    value={githubPat}
-                    onValueChange={setGithubPat}
-                  />
-                  <p className="text-xs text-default-500 mb-3">
-                    {t('githubTokenHint') || '从 https://github.com/settings/personal-access-tokens/new 获取 Fine-grained personal access tokens，授予对指定仓库的读写权限'}
-                  </p>
-                  <Input
-                    label={t('githubRepoUrl') || '仓库 URL'}
-                    placeholder="https://github.com/reiy-leo/naviga"
-                    value={githubRepoUrl}
-                    onValueChange={setGithubRepoUrl}
-                  />
-                  <p className="text-xs text-default-400">{t('githubRepoUrlHint') || '请输入仓库 URL，如 https://github.com/reiy-leo/naviga'}</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="bordered"
-                      onPress={handleTestToken}
-                      startContent={<RefreshCw size={16} />}
-                      className="flex-1"
-                    >
-                      {t('testToken') || '测试 Token'}
-                    </Button>
-                    <Button
-                      color="primary"
-                      onPress={handleGithubSync}
-                      startContent={<RefreshCw size={16} />}
-                      className="flex-1"
-                    >
-                      {t('syncNow') || '立即同步'}
-                    </Button>
-                    <Button
-                      variant="bordered"
-                      onPress={handleGithubRestore}
-                      startContent={<Download size={16} />}
-                      className="flex-1"
-                    >
-                      {t('restoreFromGithub') || '从GitHub恢复'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* Export */}
-              <div>
-                <h3 className="text-sm font-medium mb-2">{t('exportData') || '导出数据'}</h3>
-                <p className="text-xs text-default-500 mb-3">{t('exportHint') || '导出所有数据到本地文件'}</p>
-                <Button
-                  variant="bordered"
-                  onPress={handleExport}
-                  startContent={<Download size={16} />}
-                >
-                  {t('exportNow') || '立即导出'}
-                </Button>
-              </div>
-            </ModalBody>
-          </Tab>
-
-          <Tab key="workspace" title={t('workspace') || '工作区'}>
-            <ModalBody className="gap-4 py-4">
-              {workspaces.map((ws) => {
-                const meta = wsMeta[ws.id] || {}
-                return (
-                  <div key={ws.id} className="p-3 rounded-xl bg-default-50 dark:bg-default-100/50 flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 flex items-center justify-center text-xl bg-default-100 rounded-lg shrink-0">
-                        {meta.emoji || '📁'}
-                      </div>
-                      <Input
-                        size="sm"
-                        placeholder={t('workspaceName') || '工作区名称'}
-                        value={meta.text || ws.title}
-                        onValueChange={(newText) => {
-                          const currentEmoji = meta.emoji || '📁'
-                          // 同步更新 chrome.bookmarks 标题
-                          chrome.bookmarks.update(ws.id, { title: `${currentEmoji} ${newText}` })
-                          updateWsMeta(ws.id, { ...meta, text: newText })
-                        }}
-                        className="flex-1"
-                      />
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="danger"
-                        onPress={() => handleDeleteWorkspace(ws.id)}
-                        title={t('deleteWorkspace') || '删除工作区'}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-3 pl-12">
-                      <Input
-                        size="sm"
-                        placeholder="📁"
-                        value={meta.emoji || ''}
-                        onValueChange={(emoji) => {
-                          const newText = meta.text || ws.title
-                          updateWsMeta(ws.id, { ...meta, emoji })
-                          // 同步更新 chrome.bookmarks 标题，确保刷新后不丢失
-                          if (emoji) {
-                            chrome.bookmarks.update(ws.id, { title: `${emoji} ${newText}` })
-                          }
-                        }}
-                        className="w-20 shrink-0"
-                      />
-                      <div className="flex gap-1.5 flex-wrap">
-                        {WORKSPACE_COLORS.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => updateWsMeta(ws.id, { ...meta, color })}
-                            className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${
-                              meta.color === color
-                                ? 'ring-2 ring-offset-1 ring-default-foreground'
-                                : ''
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
+                <Tabs.Panel id='general'>
+                  <div className='mt-4 space-y-6'>
+                    {/* Theme */}
+                    <div>
+                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('theme')}</Label>
+                      <RadioGroup
+                        defaultValue={theme}
+                        value={theme}
+                        name='theme'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setTheme(value);
+                        }}>
+                        {THEMES.map((opt) => (
+                          <Tooltip delay={0}>
+                            <Radio
+                              value={opt}
+                              className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                              <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>{THEMES_ICONS[opt]}</Radio.Content>
+                            </Radio>
+                            <Tooltip.Content
+                              showArrow
+                              placement='bottom'>
+                              <Tooltip.Arrow />
+                              <p>{t(opt)}</p>
+                            </Tooltip.Content>
+                          </Tooltip>
                         ))}
-                      </div>
+                      </RadioGroup>
+                    </div>
+                    <Separator className='my-4' />
+
+                    {/* Background */}
+                    <div>
+                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('background')}</Label>
+                      <RadioGroup
+                        defaultValue={background}
+                        value={background}
+                        name='background'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setBackground(value);
+                        }}>
+                        {BACKGROUNDS.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className={`${backgroundStyles[opt][0]} data-[selected=true]:${backgroundStyles[opt][1]} h-12 w-12 rounded-lg border border-zinc-200 dark:border-zinc-700`}>
+                            <Radio.Content></Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='my-4' />
+
+                    {/* Icon Size */}
+                    <div>
+                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('iconSize')}</Label>
+                      <RadioGroup
+                        defaultValue={iconSize}
+                        value={iconSize}
+                        name='iconSize'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setIconSize(value);
+                        }}>
+                        {ICON_SIZES.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className='data-[selected=true]:bg-accent/20 h-16 w-16 rounded-lg'>
+                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                              {ICON_SIZE_ICONS[opt]}
+                              {/* <Label className='text-muted-foreground text-xs'>{t(opt)}</Label> */}
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* Tab Display */}
+                    <div>
+                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('tabDisplay')}</Label>
+                      <RadioGroup
+                        defaultValue={tabDisplay}
+                        value={tabDisplay}
+                        name='tabDisplay'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setTabDisplay(value);
+                        }}>
+                        {TAB_DISPLAYS.map((opt) => (
+                          <Radio value={opt}>
+                            <Radio.Control>
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <Radio.Content>
+                              <p>{t(opt)}</p>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* On Startup */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('onStartup')}</Label>
+                      <RadioGroup
+                        defaultValue={startupMode}
+                        value={startupMode}
+                        name='startupMode'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setStartupMode(value);
+                        }}>
+                        {ON_STARTUPS.map((opt) => (
+                          <Radio value={opt}>
+                            <Radio.Control>
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <Radio.Content>
+                              <Label>{t(opt)}</Label>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                      {startupMode === 'openSpecificWorkspace' && (
+                        <Select
+                          selectionMode='single'
+                          isRequired
+                          // variant="secondary"
+                          placeholder={t('selectWorkspace')}
+                          value={startupWorkspace}
+                          defaultValue={startupWorkspace}
+                          className='mt-3 w-full'
+                          onChange={(value) => setStartupWorkspace(value)}>
+                          <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                          </Select.Trigger>
+                          <Select.Popover>
+                            <ListBox>
+                              <ListBox.Item id='all'>
+                                {t('allFavorites')}
+                                <ListBox.ItemIndicator />
+                              </ListBox.Item>
+                              {workspaces.map((ws) => (
+                                <ListBox.Item
+                                  key={ws.id}
+                                  id={ws.id}
+                                  textValue={wsMeta[ws.id]?.text || ws.title}>
+                                  {ws.emoji || wsMeta[ws.id].emoji} {wsMeta[ws.id]?.text || ws.title}
+                                  <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                              ))}
+                            </ListBox>
+                          </Select.Popover>
+                        </Select>
+                      )}
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* Language */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('language')}</Label>
+                      <RadioGroup
+                        defaultValue={language}
+                        value={language}
+                        name='language'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          handleLanguageChange(value);
+                        }}>
+                        {LANGS.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                              <Tooltip
+                                delay={0}
+                                trigger='hover'>
+                                {LANG_ICONS[opt]}
+                                <Tooltip.Content
+                                  showArrow
+                                  placement='top'>
+                                  <Tooltip.Arrow />
+                                  <p>{t(opt)}</p>
+                                </Tooltip.Content>
+                              </Tooltip>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* Icon Rounded corner */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('card_corner')}</Label>
+                      <RadioGroup
+                        defaultValue={cardRoundSize}
+                        value={cardRoundSize}
+                        name='cardRoundSize'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setCardRoundSize(value);
+                        }}>
+                        {cardRoundSizes.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                              <Tooltip
+                                delay={0}
+                                trigger='hover'>
+                                {cardRoundSizeMap[opt]}
+                                <Tooltip.Content
+                                  showArrow
+                                  placement='top'>
+                                  <Tooltip.Arrow />
+                                  <p>{t(opt)}</p>
+                                </Tooltip.Content>
+                              </Tooltip>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* 未分组 位置 */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('ungroup_pos')}</Label>
+                      <RadioGroup
+                        defaultValue={ungroupedBookmarkPosition}
+                        value={ungroupedBookmarkPosition}
+                        name='ungroupedBookmarkPosition'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setUngroupedBookmarkPosition(value);
+                        }}>
+                        {ungroupedBookmarkPositions.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                              <Tooltip
+                                delay={0}
+                                trigger='hover'>
+                                {ungroupedBookmarkPositionMap[opt]}
+                                <Tooltip.Content
+                                  showArrow
+                                  placement='top'>
+                                  <Tooltip.Arrow />
+                                  <p>{t(opt)}</p>
+                                </Tooltip.Content>
+                              </Tooltip>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <Separator className='mb-4' />
+
+                    {/* navbar 图标大小 */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('navbar_icon_size')}</Label>
+                      <RadioGroup
+                        defaultValue={navbarIconSize}
+                        value={navbarIconSize}
+                        name='navbarIconSize'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setNavbarIconSize(value);
+                        }}>
+                        {navbarIconSizes.map((opt) => (
+                          <Radio
+                            value={opt}
+                            className='data-[selected=true]:bg-accent/20 h-12 w-24 rounded-lg'>
+                            <Radio.Content className={`flex h-full w-full flex-row items-center gap-2 px-2 py-2 ${getNavbarIconSize(opt)} font-medium`}>
+                              <Tooltip
+                                delay={0}
+                                trigger='hover'>
+                                <p className='shrink-1'>{defaultWorkspaceEmoji}</p>
+                                <p className='flex-1'>{t('workspace')}</p>
+                                <Tooltip.Content
+                                  showArrow
+                                  placement='top'>
+                                  <Tooltip.Arrow />
+                                  <p>{t(opt)}</p>
+                                </Tooltip.Content>
+                              </Tooltip>
+                            </Radio.Content>
+                          </Radio>
+                        ))}
+                      </RadioGroup>
                     </div>
                   </div>
-                )
-              })}
-              {/* 新建工作区 */}
-              <Button
-                variant="dashed"
-                onPress={handleCreateWorkspace}
-                startContent={<Plus size={16} />}
-                className="w-full border-dashed border-2 border-default-300 text-default-500 hover:border-default-500 hover:text-default-700"
-              >
-                {t('newWorkspace') || '新建工作区'}
-              </Button>
-            </ModalBody>
-          </Tab>
+                </Tabs.Panel>
 
-          <Tab key="about" title={t('about') || '关于'}>
-            <ModalBody className="py-8">
-              <div className="text-center">
-                <img src="/logo.png?v=20260503" alt="Naviga" className="w-16 h-16 mx-auto mb-4 rounded-xl object-contain" />
-                <div className="text-5xl font-bold mb-3">Naviga</div>
-                <div className="text-default-500 mb-8">{t('version') || '版本'} 1.0.0</div>
+                <Tabs.Panel id='data'>
+                  <div className='mt-4 space-y-6'>
+                    {/* Import */}
+                    <div>
+                      <h3 className='mb-2 text-sm font-medium'>{t('importBookmarks')}</h3>
+                      <Description>{t('importHint')}</Description>
+                      <Button
+                        variant='bordered'
+                        onPress={handleImportFile}
+                        startContent={<Upload size={16} />}>
+                        {t('selectFile')}
+                      </Button>
+                    </div>
+                    <Separator />
 
-                <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                  <Button
-                    variant="bordered"
-                    startContent={<Github size={18} />}
-                    endContent={<ExternalLink size={14} />}
-                    as="a"
-                    href="https://github.com/reiy-leo/naviga"
-                    target="_blank"
-                  >
-                    {t('github') || 'GitHub'}
-                  </Button>
-                  <Button
-                    variant="bordered"
-                    startContent={<ExternalLink size={18} />}
-                    as="a"
-                    href="https://github.com/reiy-leo/naviga/issues"
-                    target="_blank"
-                  >
-                    {t('reportIssue') || '报告问题'}
-                  </Button>
-                </div>
-              </div>
-            </ModalBody>
-          </Tab>
-        </Tabs>
-      </ModalContent>
+                    {/* GitHub Sync */}
+                    <div>
+                      <h3 className='mb-2 text-sm font-medium'>{t('syncToGithub')}</h3>
+                      <Description>{t('syncHint')}</Description>
+                      <div className='flex flex-col gap-3'>
+                        <Input
+                          type='password'
+                          label='Personal Access Token'
+                          placeholder='ghp_xxxxxxxxxxxx'
+                          value={githubPat}
+                          onValueChange={setGithubPat}
+                        />
+                        <Description>{t('githubTokenHint')}</Description>
+                        <Input
+                          label={t('githubRepoUrl')}
+                          placeholder='https://github.com/reiy-leo/naviga-bookmarks'
+                          value={githubRepoUrl}
+                          onValueChange={setGithubRepoUrl}
+                        />
+                        <Description>{t('githubRepoUrlHint')}</Description>
+                        <div className='flex gap-2'>
+                          <Button
+                            variant='bordered'
+                            onPress={handleTestToken}
+                            startContent={<RefreshCw size={16} />}
+                            className='flex-1'>
+                            {t('testToken')}
+                          </Button>
+                          <Button
+                            color='bordered'
+                            onPress={handleGithubSync}
+                            startContent={<RefreshCw size={16} />}
+                            className='flex-1'>
+                            {t('syncNow')}
+                          </Button>
+                          <Button
+                            variant='bordered'
+                            onPress={handleGithubRestore}
+                            startContent={<Download size={16} />}
+                            className='flex-1'>
+                            {t('restoreFromGithub')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className='my-2 border-t border-mist-200' />
+
+                    {/* Export */}
+                    <div>
+                      <h3 className='mb-2 text-sm font-medium'>{t('exportData')}</h3>
+                      <p className='mb-3 text-xs text-mist-500'>{t('exportHint')}</p>
+                      <Button
+                        variant='bordered'
+                        onPress={handleExport}
+                        startContent={<Download size={16} />}>
+                        {t('exportNow')}
+                      </Button>
+                    </div>
+                  </div>
+                </Tabs.Panel>
+
+                <Tabs.Panel id='workspace'>
+                  <div className='space-y-4 py-3'>
+                    {workspaces.map((ws) => {
+                      const meta = wsMeta[ws.id] || {};
+                      return (
+                        <div
+                          key={ws.id}
+                          className='flex flex-row gap-3 rounded-xl border-zinc-100 bg-mist-50/50 py-3 dark:border-zinc-700 dark:bg-zinc-800/50'>
+                          <div className='text-md flex h-9 w-12 shrink-0 items-center justify-end rounded-lg'>{meta.emoji || defaultWorkspaceEmoji}</div>
+                          <div className='flex h-10 flex-1 flex-col gap-3'>
+                            <Input
+                              size='sm'
+                              placeholder={t('workspaceName')}
+                              value={meta.text || ws.title}
+                              onChange={(e) => {
+                                const newText = e.target.value;
+                                const currentEmoji = meta.emoji || defaultWorkspaceEmoji;
+                                chrome.bookmarks.update(ws.id, {
+                                  title: `${currentEmoji} ${newText}`,
+                                });
+                                updateWsMeta(ws.id, { ...meta, text: newText });
+                              }}
+                              className='h-8 flex-1 rounded-sm border-0 text-sm font-medium'
+                            />
+                            <div className='flex flex-1 items-center gap-3'>
+                              <Input
+                                name='workspace-icon-emojis'
+                                placeholder={defaultWorkspaceEmoji}
+                                value={meta.emoji || ''}
+                                onChange={async (e) => {
+                                  const emojis = e.target.value.trim();
+                                  const newText = meta.text || ws.title;
+                                  const emojiCount = countEmojis(emojis);
+                                  if (emojiCount <= 3 && semanticLength(emojis) === emojiCount) {
+                                    updateWsMeta(ws.id, { ...meta, emoji: e.target.value });
+                                    await chrome.bookmarks.update(ws.id, {
+                                      title: `${emojis} ${newText}`,
+                                    });
+                                  } else {
+                                    toast(t('workspaceEmojiCountLimit'), {
+                                      description: t('workspaceEmojiCountHint'),
+                                      variant: 'danger',
+                                      indicator: <Cannabis className='text-red-400' />,
+                                    });
+                                  }
+                                }}
+                                className='flex-1 rounded-sm text-sm'
+                              />
+                              <ColorPicker
+                                defaultValue={colorToHex(meta.color)}
+                                onChange={(color) => {
+                                  updateWsMeta(ws.id, { ...meta, color: colorToHex(color) });
+                                }}
+                                className='flex-1'>
+                                <ColorPicker.Trigger>
+                                  <ColorSwatch
+                                    size='sm'
+                                    shape='square'
+                                    color={colorToHex(meta.color)}
+                                    className='h-8 w-full rounded-sm'
+                                  />
+                                </ColorPicker.Trigger>
+                                <ColorPicker.Popover>
+                                  <ColorArea
+                                    aria-label='Color area'
+                                    className='max-w-full'
+                                    colorSpace='hsb'
+                                    xChannel='saturation'
+                                    yChannel='brightness'>
+                                    <ColorArea.Thumb />
+                                  </ColorArea>
+                                  <ColorSlider
+                                    aria-label='Hue slider'
+                                    channel='hue'
+                                    className='gap-1 px-1'
+                                    colorSpace='hsb'>
+                                    <Label>{t('color_hue')}</Label>
+                                    <ColorSlider.Output className='text-muted' />
+                                    <ColorSlider.Track>
+                                      <ColorSlider.Thumb />
+                                    </ColorSlider.Track>
+                                  </ColorSlider>
+                                  <ColorSlider
+                                    aria-label='Alpha slider'
+                                    channel='alpha'
+                                    className='gap-1 px-1'
+                                    colorSpace='hsb'>
+                                    <Label>{t('color_alpha')}</Label>
+                                    <ColorSlider.Output className='text-muted' />
+                                    <ColorSlider.Track>
+                                      <ColorSlider.Thumb />
+                                    </ColorSlider.Track>
+                                  </ColorSlider>
+                                  <ColorSwatchPicker
+                                    className='justify-center px-1'
+                                    size='xs'>
+                                    {presets.map((preset) => (
+                                      <ColorSwatchPicker.Item
+                                        key={preset}
+                                        color={preset}>
+                                        <ColorSwatchPicker.Swatch />
+                                      </ColorSwatchPicker.Item>
+                                    ))}
+                                  </ColorSwatchPicker>
+                                </ColorPicker.Popover>
+                              </ColorPicker>
+                            </div>
+                          </div>
+                          <div className='flex flex-col gap-1 py-2'>
+                            <Tooltip delay={300}>
+                              <Button
+                                isIconOnly
+                                size='sm'
+                                variant='ghost'
+                                onPress={() => handleDeleteWorkspace(ws.id)}>
+                                <SquareX
+                                  size={16}
+                                  className='text-red-200 hover:text-red-500'
+                                />
+                              </Button>
+                              <Tooltip.Content
+                                showArrow
+                                placement='right'>
+                                <Tooltip.Arrow />
+                                <p>{t('deleteWorkspace')}</p>
+                              </Tooltip.Content>
+                            </Tooltip>
+                            <Tooltip delay={300}>
+                              <Button
+                                isIconOnly
+                                size='sm'
+                                variant='ghost'
+                                onPress={() => handleWorkspaceOrderUp(ws.id, '1')}>
+                                <ChevronUp
+                                  className='text-zinc-200 hover:text-zinc-700'
+                                  size={16}
+                                />
+                              </Button>
+                              <Tooltip.Content
+                                showArrow
+                                placement='right'>
+                                <Tooltip.Arrow />
+                                <p>{t('moveWorkspaceUp')}</p>
+                              </Tooltip.Content>
+                            </Tooltip>
+                            <Tooltip delay={300}>
+                              <Button
+                                isIconOnly
+                                size='sm'
+                                variant='ghost'
+                                onPress={() => handleWorkspaceOrderDown(ws.id, '1')}>
+                                <ChevronDown
+                                  size={16}
+                                  className='text-zinc-200 hover:text-zinc-700'
+                                />
+                              </Button>
+                              <Tooltip.Content
+                                showArrow
+                                placement='right'>
+                                <Tooltip.Arrow />
+                                <p>{t('moveWorkspaceDown')}</p>
+                              </Tooltip.Content>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <Button
+                      variant='bordered'
+                      onPress={handleCreateWorkspace}
+                      startContent={<Plus size={16} />}
+                      className='w-full border-2 border-dashed border-mist-300 text-mist-500 hover:border-mist-500 hover:text-mist-700'>
+                      {t('newWorkspace')}
+                    </Button>
+                  </div>
+                </Tabs.Panel>
+
+                <Tabs.Panel id='about'>
+                  <div className='py-8 text-center'>
+                    <div className='flex flex-col items-center justify-center gap-2'>
+                      <img
+                        src='/logo.png?v=20260503'
+                        alt='Naviga'
+                        className='mx-auto mb-4 h-16 w-16 rounded-xl object-contain'
+                      />
+                      <div className='flex max-w-20 flex-col items-center'>
+                        <div className='mb-3 text-xl font-bold'>Naviga</div>
+                        <div className='mb-8'>{t('version')} 1.0.0</div>
+                      </div>
+                    </div>
+
+                    <div className='mx-auto flex max-w-xs flex-col flex-row gap-3'>
+                      <Link
+                        className='flex-1 gap-1'
+                        href='https://github.com/reiy-leo/naviga'>
+                        {t('github')}
+                        <Link.Icon className='size-3'>
+                          <LinkIcon />
+                        </Link.Icon>
+                      </Link>
+                      <Link
+                        className='flex-1 gap-1'
+                        href='hhttps://github.com/reiy-leo/naviga/issues'>
+                        {t('reportIssue')}
+                        <Link.Icon className='size-3'>
+                          <LinkIcon />
+                        </Link.Icon>
+                      </Link>
+                    </div>
+                  </div>
+                </Tabs.Panel>
+              </Tabs>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
-  )
+  );
 }
 
-export default SettingsModal
+export default SettingsModal;

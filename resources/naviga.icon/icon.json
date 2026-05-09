@@ -1,29 +1,27 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.47843,1.00000,1.00000"
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.00000,0.47843,1.00000,1.00000"
   },
-  "groups" : [
+  "groups": [
     {
-      "layers" : [
+      "layers": [
         {
-          "image-name" : "ChatGPT Image Apr 30, 2026, 05_44_46 AM.png",
-          "name" : "ChatGPT Image Apr 30, 2026, 05_44_46 AM"
+          "image-name": "ChatGPT Image Apr 30, 2026, 05_44_46 AM.png",
+          "name": "ChatGPT Image Apr 30, 2026, 05_44_46 AM"
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
-      "watchOS"
-    ],
-    "squares" : "shared"
+  "supported-platforms": {
+    "circles": ["watchOS"],
+    "squares": "shared"
   }
 }

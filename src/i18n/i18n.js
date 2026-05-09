@@ -1,5 +1,5 @@
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
 
 const resources = {
   zh: {
@@ -7,17 +7,18 @@ const resources = {
       // 通用设置
       settings: '设置',
       general: '通用',
+      customize: '个性化',
       data: '数据',
       workspace: '工作区',
       about: '关于',
-      
+
       // 外观
       appearance: '外观',
       theme: '主题',
       light: '浅色',
       dark: '深色',
       system: '跟随系统',
-      
+
       // 背景
       background: '背景',
       default: '默认',
@@ -25,23 +26,45 @@ const resources = {
       deep: '深邃',
       blueTint: '蓝色调',
       warmTint: '暖色调',
-      
+
       // 工作区显示
       workspaceDisplay: '工作区显示',
       showTabBar: '显示标签栏',
-      
+      defaultWorkspaceEmoji: '工作区默认图标',
+      defaultWorkspaceIconPlaceholder: '用户不提供图标时工作区使用的图标',
+      workspaceEmojiCountLimit: '工作区默认图标限制',
+      workspaceEmojiCountHint: '请输入不超过3个Emoji符号，不要包含非Emoji字符',
+      moveWorkspaceUp: '向前移动工作区',
+      moveWorkspaceDown: '向后移动工作区',
+
       // 图标
       iconSize: '图标大小',
       small: '小',
       medium: '中',
       large: '大',
-      
+      card_corner: '图标圆角',
+      card_small: '小圆角',
+      card_large: '大圆角',
+      card_full: '正圆',
+
+      // 未分组
+      ungroup_pos: '未分组位置',
+      ungroup_top: '未分组放在上面',
+      ungroup_bottom: '未分组放在下面',
+      ungrouped_bookmarks: '未分组的',
+
+      // navbar 图标大小
+      navbar_icon_size: '导航栏标签大小',
+      nbi_sm: '小',
+      nbi_base: '中',
+      nbi_lg: '大',
+
       // 书签页显示
-      tabDisplay: '标签显示',
+      tabDisplay: '导航栏标签',
       iconOnly: '仅图标',
       textOnly: '仅文本',
       both: '图标和文本',
-      
+
       // 默认工作区
       defaultWorkspace: '默认工作区',
 
@@ -52,12 +75,13 @@ const resources = {
       openSpecificWorkspace: '打开指定的工作区',
       selectWorkspace: '选择工作区',
       allFavorites: '收藏',
-      
+
       // 语言
       language: '语言',
-      chinese: '简体中文',
-      english: 'English',
-      
+      zh: '简体中文',
+      en: '英语',
+      ja: '日语',
+
       // 数据
       importBookmarks: '导入书签',
       importHint: '从 Chrome/Edge 书签 JSON 文件导入',
@@ -87,21 +111,19 @@ const resources = {
       exportNow: '立即导出',
       importData: '导入数据',
       importDataHint: '从 JSON 文件导入书签和设置',
-      
+
       // 工作区设置
       workspaceSettings: '工作区设置',
       workspaceName: '工作区名称',
       workspaceEmoji: '工作区图标',
       workspaceColor: '主色调',
       newWorkspace: '新建工作区',
-      save: '保存',
-      cancel: '取消',
-      
+
       // 关于
       version: '版本',
       github: 'GitHub',
       reportIssue: '报告问题',
-      
+
       // 书签
       all: '全部',
       addBookmark: '添加书签',
@@ -114,6 +136,7 @@ const resources = {
       maxSubBookmarks: '最多添加 5 个子书签',
       confirmDeleteSubBookmark: '确定删除此子书签？',
       saveFailed: '保存失败',
+      unnamedBookmark: '未命名书签',
       url: '网址',
       name: '名称',
       confirmDelete: '确定要删除此书签吗？',
@@ -130,10 +153,11 @@ const resources = {
       manual: '手动填写',
       autoFetchHint: '将自动从网站获取图标',
       iconUrl: '图标地址',
+      previewIconUrl: '输入图片地址后会按下回车键预览',
       invalidIconUrl: '无效的图片地址',
       validIconUrl: '有效的图片地址',
       preview: '预览',
-      
+
       // 视图
       listView: '列表视图',
       gridView: '网格视图',
@@ -145,9 +169,11 @@ const resources = {
       newSubFolder: '新建子文件夹',
       newBookmark: '新建书签',
       dissolveFolder: '解散文件夹',
+      dissolveFolderHint: '将文件夹内的书签移到上一级文件夹后，删除该文件夹',
       deleteFolder: '删除文件夹',
+      deleteFolderHint: '删除该文件夹及其包含的所有书签、子文件夹',
       confirmDeleteFolder: '确定删除此文件夹及其所有内容？',
-      moveTo: '移动到...',
+      moveToWorkspace: '移动到工作区...',
       move: '移动',
       moveFailed: '移动失败',
       selectTargetWorkspace: '选择目标工作区',
@@ -155,7 +181,15 @@ const resources = {
       deleteWorkspace: '删除工作区',
       confirmDeleteWorkspace: '确定删除此工作区及其所有内容？',
       newTabPage: '新建标签页',
-    }
+      moveFolderUpward: '上移文件夹',
+      moveFolderDownward: '下移文件夹',
+
+      // Color
+      color_alpha: '透明度',
+      color_hue: '色相',
+      color_saturation: '饱和度',
+      color_brightness: '亮度',
+    },
   },
   en: {
     translation: {
@@ -165,14 +199,14 @@ const resources = {
       data: 'Data',
       workspace: 'Workspace',
       about: 'About',
-      
+
       // Appearance
       appearance: 'Appearance',
       theme: 'Theme',
       light: 'Light',
       dark: 'Dark',
       system: 'System',
-      
+
       // Background
       background: 'Background',
       default: 'Default',
@@ -180,23 +214,23 @@ const resources = {
       deep: 'Deep',
       blueTint: 'Blue Tint',
       warmTint: 'Warm Tint',
-      
+
       // Workspace Display
       workspaceDisplay: 'Workspace Display',
       showTabBar: 'Show Tab Bar',
-      
+
       // Icon
       iconSize: 'Icon Size',
       small: 'Small',
       medium: 'Medium',
       large: 'Large',
-      
+
       // Tab Display
-      tabDisplay: 'Tab Display',
+      tabDisplay: 'Tab Display Size',
       iconOnly: 'Icon Only',
       textOnly: 'Text Only',
       both: 'Icon & Text',
-      
+
       // Default Workspace
       defaultWorkspace: 'Default Workspace',
 
@@ -207,12 +241,13 @@ const resources = {
       openSpecificWorkspace: 'Open Specific Workspace',
       selectWorkspace: 'Select Workspace',
       allFavorites: 'Favorites',
-      
+
       // Language
       language: 'Language',
-      chinese: '简体中文',
-      english: 'English',
-      
+      zh: 'Simplified Chinese',
+      en: 'English',
+      ja: 'Japanese',
+
       // Data
       importBookmarks: 'Import Bookmarks',
       importHint: 'Import from Chrome/Edge Bookmarks JSON file',
@@ -242,7 +277,7 @@ const resources = {
       exportNow: 'Export Now',
       importData: 'Import Data',
       importDataHint: 'Import bookmarks and settings from JSON file',
-      
+
       // Workspace Settings
       workspaceSettings: 'Workspace Settings',
       workspaceName: 'Workspace Name',
@@ -251,13 +286,13 @@ const resources = {
       newWorkspace: 'New Workspace',
       save: 'Save',
       cancel: 'Cancel',
-      
+
       // About
       version: 'Version',
       github: 'GitHub',
       reportIssue: 'Report Issue',
       author: 'Author',
-      
+
       // Bookmarks
       all: 'All',
       addBookmark: 'Add Bookmark',
@@ -278,7 +313,8 @@ const resources = {
       refreshIcon: 'Refresh Icon',
       url: 'URL',
       name: 'Name',
-      
+      previewIconUrl: 'Please press Enter to preview after entering the image URL',
+
       // Views
       listView: 'List View',
       gridView: 'Grid View',
@@ -292,7 +328,7 @@ const resources = {
       dissolveFolder: 'Dissolve Folder',
       deleteFolder: 'Delete Folder',
       confirmDeleteFolder: 'Delete this folder and all its contents?',
-      moveTo: 'Move to...',
+      moveToWorkspace: 'Move to Workspace ...',
       move: 'Move',
       moveFailed: 'Move failed',
       selectTargetWorkspace: 'Select target workspace',
@@ -300,7 +336,9 @@ const resources = {
       deleteWorkspace: 'Delete workspace',
       confirmDeleteWorkspace: 'Delete this workspace and all its contents?',
       newTabPage: 'New Tab',
-    }
+      moveFolderUpward: 'Move Folder Up',
+      moveFolderDownward: 'Move Folder Down',
+    },
   },
   ja: {
     translation: {
@@ -310,14 +348,14 @@ const resources = {
       data: 'データ',
       workspace: 'ワークスペース',
       about: 'について',
-      
+
       // 外観
       appearance: '外観',
       theme: 'テーマ',
       light: 'ライト',
       dark: 'ダーク',
       system: 'システムに合わせる',
-      
+
       // 背景
       background: '背景',
       default: 'デフォルト',
@@ -325,26 +363,26 @@ const resources = {
       deep: 'ディープ',
       blueTint: 'ブルーティント',
       warmTint: 'ウォームティント',
-      
+
       // ワークスペース表示
       workspaceDisplay: 'ワークスペース表示',
       showTabBar: 'タブバーを表示',
-      
+
       // アイコン
       iconSize: 'アイコンサイズ',
       small: '小',
       medium: '中',
       large: '大',
-      
+
       // タブ表示
       tabDisplay: 'タブ表示',
       iconOnly: 'アイコンのみ',
       textOnly: 'テキストのみ',
       both: 'アイコンとテキスト',
-      
+
       // デフォルトワークスペース
       defaultWorkspace: 'デフォルトワークスペース',
-      
+
       // 起動時
       onStartup: '起動時',
       openHomepage: 'ホームページを開く',
@@ -352,13 +390,13 @@ const resources = {
       openSpecificWorkspace: '指定したワークスペースを開く',
       selectWorkspace: 'ワークスペースを選択',
       allFavorites: 'お気に入り',
-      
+
       // 言語
       language: '言語',
-      chinese: '簡体中文',
-      english: 'English',
-      japanese: '日本語',
-      
+      zh: '中国語',
+      en: '英語',
+      ja: '日本語',
+
       // データ
       importBookmarks: 'ブックマークをインポート',
       importHint: 'Chrome/Edge ブックマークJSONファイルからインポート',
@@ -373,7 +411,7 @@ const resources = {
       exportNow: '今すぐエクスポート',
       importData: 'データをインポート',
       importDataHint: 'JSONファイルからブックマークと設定をインポート',
-      
+
       // ワークスペース設定
       workspaceSettings: 'ワークスペース設定',
       workspaceName: 'ワークスペース名',
@@ -382,13 +420,13 @@ const resources = {
       newWorkspace: '新規ワークスペース',
       save: '保存',
       cancel: 'キャンセル',
-      
+
       // について
       version: 'バージョン',
       github: 'GitHub',
       reportIssue: '問題を報告',
       author: '作者',
-      
+
       // ブックマーク
       all: 'すべて',
       addBookmark: 'ブックマークを追加',
@@ -418,12 +456,12 @@ const resources = {
       invalidIconUrl: '無効な画像URL',
       validIconUrl: '有効な画像URL',
       preview: 'プレビュー',
-      
+
       // 表示
       listView: 'リスト表示',
       gridView: 'グリッド表示',
       smartView: 'スマート表示',
-      
+
       // フォルダ操作
       rename: '名前を変更',
       newFolder: '新規フォルダ',
@@ -443,19 +481,19 @@ const resources = {
       syncSuccess: '同期成功！\nGist URL: ',
       syncFailed: '同期に失敗しました: ',
       networkError: 'ネットワークエラー: ',
-    }
-  }
-}
+      moveFolderUpward: 'フォルダを上に移動',
+      moveFolderDownward: 'フォルダを下に移動',
+    },
+  },
+};
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: 'zh',
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false
-    }
-  })
+i18n.use(initReactI18next).init({
+  resources,
+  lng: 'zh',
+  fallbackLng: 'en',
+  interpolation: {
+    escapeValue: false,
+  },
+});
 
-export default i18n
+export default i18n;
