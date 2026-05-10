@@ -93,7 +93,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     return { backgroundColor: colorToHex(workspaceColor, 0.12) };
   }, [workspaceColor]);
 
-  useEffect(async () => {
+  useEffect(() => {
     if (bookmark_shadowing) {
       async function load() {
         const shadowed = await getBookmark(bookmark_shadowing);
