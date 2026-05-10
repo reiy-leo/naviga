@@ -2,7 +2,6 @@
 @import '@heroui/react/styles';
 
 body {
-  overflow: hidden;
   width: 100vw;
 }
 
