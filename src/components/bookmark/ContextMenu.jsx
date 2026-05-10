@@ -1,11 +1,12 @@
 import { Button } from '@heroui/react';
-import { BookmarkPlus, Folder, Pencil, RefreshCw, Star, StarOff, Trash2 } from 'lucide-react';
+import { BookmarkPlus, Folder, Pencil, RefreshCw, Star, StarOff, Trash2, SquareDashed } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useAppStore } from '../../store/useAppStore';
 
-export function ContextMenu({ x, y, bookmark, isFav, onClose }) {
+export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
+  console.log('isShadow', isShadow);
   const { t } = useTranslation();
   const { toggleFavorite } = useAppStore();
   const menuRef = useRef(null);
@@ -118,7 +119,7 @@ export function ContextMenu({ x, y, bookmark, isFav, onClose }) {
         variant='ghost'
         onClick={(e) => {
           e.stopPropagation();
-          window.__navigaActions?.openMoveModal(bookmark);
+          window.__navigaActions?.openMoveModal(bookmark, t('moveToWorkspace'), 'moveBookmark');
           onClose();
         }}>
         <Folder
@@ -127,6 +128,22 @@ export function ContextMenu({ x, y, bookmark, isFav, onClose }) {
         />
         <span>{t('moveToWorkspace')}</span>
       </Button>
+      {!isShadow && (
+        <Button
+          className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
+          variant='ghost'
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__navigaActions?.openMoveModal(bookmark, t('createShadowToWorkspace'), 'shadowBookmark');
+            onClose();
+          }}>
+          <SquareDashed
+            size={16}
+            className='text-mist-400'
+          />
+          <span>{t('createShadow')}</span>
+        </Button>
+      )}
 
       <Button
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-red-950 transition-colors hover:bg-red-50'

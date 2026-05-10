@@ -3,6 +3,7 @@ import { Link2, CircleEllipsis, Star, GripVertical } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { getBookmark } from '../../db/bookmarks';
 import { colorToHex } from '../../lib/utils';
 import { useAppStore } from '../../store/useAppStore';
 import { ContextMenu } from './ContextMenu';
@@ -16,12 +17,28 @@ const cardRoundSizeMap = {
 
 function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = false, onDragStart, onDragEnd }) {
   const { t } = useTranslation();
-  const { incrementClickCount, subBookmarks, favorites, faviconCache, tabFavicons, setFaviconForDomain, clearFaviconForDomain, fetchFaviconAsDataUrl, iconSize, cardRoundSize } = useAppStore();
+  const {
+    incrementClickCount,
+    subBookmarks,
+    favorites,
+    faviconCache,
+    tabFavicons,
+    setFaviconForDomain,
+    clearFaviconForDomain,
+    fetchFaviconAsDataUrl,
+    iconSize,
+    cardRoundSize,
+  } = useAppStore();
   const [imageError, setImageError] = useState(false);
   const [menuPos, setMenuPos] = useState(null);
   const [subsExpanded, setSubsExpanded] = useState(false);
   const [faviconRefreshKey, setFaviconRefreshKey] = useState(0);
   const badgeRef = useRef(null);
+
+  const [bookmark_id, setBookmarkId] = useState(bookmark.id);
+  const [bookmark_title, setBookmarkTitle] = useState(bookmark.title);
+  const [bookmark_url, setBookmarkUrl] = useState(bookmark.url);
+  const [bookmark_shadowing, setBookmarkShadowing] = useState(bookmark.shadowing);
 
   const sizeConfig = useMemo(() => {
     if (viewMode === 'list') {
@@ -75,26 +92,38 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     return { backgroundColor: colorToHex(workspaceColor, 0.12) };
   }, [workspaceColor]);
 
-  const isFav = favorites.includes(bookmark.id);
-  const hasSubBookmarks = subBookmarks[bookmark.id] && subBookmarks[bookmark.id].length > 0;
+  useEffect(async () => {
+    if (bookmark_shadowing) {
+      async function load() {
+        const shadowed = await getBookmark(bookmark_shadowing);
+        setBookmarkId(shadowed.id);
+        setBookmarkTitle(shadowed.title);
+        setBookmarkUrl(shadowed.url);
+      }
+      load();
+    }
+  }, []);
+
+  const isFav = favorites.includes(bookmark_id);
+  const hasSubBookmarks = subBookmarks[bookmark_id] && subBookmarks[bookmark_id].length > 0;
 
   const displayTitle = useMemo(() => {
-    if (bookmark.title && bookmark.title.trim()) return bookmark.title;
+    if (bookmark_title && bookmark_title.trim()) return bookmark_title;
     try {
-      const url = new URL(bookmark.url);
+      const url = new URL(bookmark_url);
       return url.hostname || t('unnamedBookmark');
     } catch {
       return t('unnamedBookmark');
     }
-  }, [bookmark.title, bookmark.url]);
+  }, [bookmark_title, bookmark_url]);
 
   const domain = useMemo(() => {
     try {
-      return new URL(bookmark.url).origin;
+      return new URL(bookmark_url).origin;
     } catch {
       return null;
     }
-  }, [bookmark.url]);
+  }, [bookmark_url]);
 
   const faviconUrl = useMemo(() => {
     if (imageError || !domain) return null;
@@ -117,12 +146,12 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
       if (src && !src.startsWith('data:')) {
         fetchFaviconAsDataUrl(src).then((dataUrl) => {
           if (dataUrl) {
-            setFaviconForDomain(domain, dataUrl, displayTitle, bookmark.url, src);
+            setFaviconForDomain(domain, dataUrl, displayTitle, bookmark_url, src);
           }
         });
       }
     },
-    [domain, faviconCache, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark.url],
+    [domain, faviconCache, fetchFaviconAsDataUrl, setFaviconForDomain, displayTitle, bookmark_url],
   );
 
   const handleFaviconError = useCallback(() => {
@@ -135,8 +164,8 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
   }, [domain, faviconCache, tabFavicons]);
 
   const handleClick = () => {
-    incrementClickCount(bookmark.id);
-    window.open(bookmark.url, '_blank');
+    incrementClickCount(bookmark_id);
+    window.open(bookmark_url, '_blank');
   };
 
   const handleContextMenu = useCallback((e) => {
@@ -161,7 +190,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
 
   useEffect(() => {
     const handleRefresh = async (e) => {
-      if (e.detail?.id === bookmark.id) {
+      if (e.detail?.id === bookmark_id) {
         setImageError(false);
         if (domain) clearFaviconForDomain(domain);
         await useAppStore.getState().fetchTabFavicons();
@@ -170,18 +199,19 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     };
     window.addEventListener('refresh-icon', handleRefresh);
     return () => window.removeEventListener('refresh-icon', handleRefresh);
-  }, [bookmark.id, domain, clearFaviconForDomain]);
+  }, [bookmark_id, domain, clearFaviconForDomain]);
 
   const handleDragStart = (e) => {
     if (onDragStart) onDragStart(e, bookmark);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData(
       'application/bookmark',
+      // NOTE 对于shadow而言，bookmark.id是shadow本身的id，bookmark_id是源id
       JSON.stringify({
         id: bookmark.id,
         parentId: bookmark.parentId,
-        title: bookmark.title,
-        url: bookmark.url,
+        title: bookmark_title,
+        url: bookmark_url,
         index: bookmark.index,
       }),
     );
@@ -223,8 +253,8 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
                       alt=''
                       data-bookmark-id={bookmark.id}
                       className={`${sizeConfig.icon} object-contain`}
-                      onLoad={handleFaviconLoad}
-                      onError={handleFaviconError}
+                      onLoad={(e) => handleFaviconLoad(e)}
+                      onError={(e) => handleFaviconError(e)}
                     />
                   ) : (
                     <Link2
@@ -235,7 +265,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
                 </div>
                 <div className='min-w-0 flex-1'>
                   <div className='truncate text-sm font-medium'>{displayTitle}</div>
-                  <div className='truncate text-xs text-mist-500'>{bookmark.url}</div>
+                  <div className='truncate text-xs text-mist-500'>{bookmark_url}</div>
                 </div>
                 {isFav && (
                   <Star
@@ -277,6 +307,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
           <ContextMenu
             x={menuPos.x}
             y={menuPos.y}
+            isShadow={!!bookmark_shadowing}
             bookmark={bookmark}
             isFav={isFav}
             onClose={closeMenu}
@@ -301,7 +332,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
             draggable={draggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`h-full w-full p-1 ${cardRoundSizeMap[cardRoundSize]}`}
+            className={`h-full w-full border p-1 ${cardRoundSizeMap[cardRoundSize]} ${bookmark_shadowing ? 'border-2 border-dotted border-violet-600' : 'border-solid'}`}
             style={cardStyle}>
             <CardContent className='flex flex-col items-center justify-center gap-2 p-1'>
               <div
@@ -323,7 +354,9 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
                   />
                 )}
               </div>
-              <div className={`${sizeConfig.text || 'text-xs'} w-full truncate text-center text-mist-600`}>{displayTitle}</div>
+              <div className={`${sizeConfig.text || 'text-xs'} w-full truncate text-center text-mist-600`}>
+                {displayTitle}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -363,7 +396,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
       )}
       {subsExpanded && hasSubBookmarks && (
         <SubBookmarkList
-          parentId={bookmark.id}
+          parentId={bookmark_id}
           faviconCache={faviconCache}
           tabFavicons={tabFavicons}
           onClose={() => setSubsExpanded(false)}
@@ -374,6 +407,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
         <ContextMenu
           x={menuPos.x}
           y={menuPos.y}
+          isShadow={!!bookmark_shadowing}
           bookmark={bookmark}
           isFav={isFav}
           onClose={closeMenu}

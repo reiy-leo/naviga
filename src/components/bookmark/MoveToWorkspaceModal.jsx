@@ -1,11 +1,12 @@
-import { Modal, Button, CloseButton, RadioGroup, Radio, Description } from '@heroui/react';
-import { Folder, MoveRight } from 'lucide-react';
+import { Modal, Button, RadioGroup, Radio } from '@heroui/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { v7 as UUIDv7 } from 'uuid';
 
+import { saveShadow } from '../../db/shadows';
 import { useAppStore } from '../../store/useAppStore';
 
-function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }) {
+function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, onComplete, moveType }) {
   const { t } = useTranslation();
   const { workspaces, parseWorkspaceTitle } = useAppStore();
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
@@ -16,7 +17,14 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
   const handleMove = async () => {
     if (!selectedWorkspace || !bookmark?.id) return;
     try {
-      await chrome.bookmarks.move(bookmark.id, { parentId: selectedWorkspace });
+      if (moveType === 'moveBookmark') {
+        await chrome.bookmarks.move(bookmark.id, { parentId: selectedWorkspace });
+      } else if (moveType === 'shadowBookmark') {
+        await saveShadow(UUIDv7(), {
+          shadowing: bookmark.id,
+          parentId: selectedWorkspace,
+        });
+      }
       onComplete?.();
       onClose();
     } catch (error) {
@@ -39,7 +47,7 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
           <Modal.Dialog>
             <Modal.CloseTrigger onPress={onClose} />
             <Modal.Header className='flex items-center justify-between px-6 pt-6'>
-              <span className='text-base font-semibold'>{t('moveToWorkspace')}</span>
+              <span className='text-base font-semibold'>{title}</span>
             </Modal.Header>
 
             <Modal.Body className='space-y-4 px-6'>
@@ -82,7 +90,8 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
                 color='primary'
                 onPress={handleMove}
                 isDisabled={!selectedWorkspace}>
-                {t('move')}
+                {moveType === 'moveBookmark' && t('move')}
+                {moveType === 'shadowBookmark' && t('create')}
               </Button>
             </Modal.Footer>
           </Modal.Dialog>
@@ -92,4 +101,4 @@ function MoveBookmarkModal({ bookmark, currentWorkspaceId, onClose, onComplete }
   );
 }
 
-export default MoveBookmarkModal;
+export default MoveToWorkspaceModal;

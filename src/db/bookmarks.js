@@ -15,7 +15,10 @@ class BookmarksDB extends Dexie {
     super(DB_NAME);
 
     this.version(1).stores({
-      /** Id: bookmark id parentId: 父文件夹 id type: folder | bookmark title: 标题 url: 书签地址 index: 排序索引 createdAt: 创建时间 updatedAt: 更新时间 */
+      /**
+       * Id: bookmark id parentId: 父文件夹 id type: folder | bookmark title: 标题 url: 书签地址 index: 排序索引 createdAt: 创建时间
+       * updatedAt: 更新时间
+       */
       bookmarks: 'id, parentId',
     });
 
@@ -40,7 +43,6 @@ const db = new BookmarksDB();
  *   {
  *     id: string;
  *     parentId?: string;
- *     type?: 'folder' | 'bookmark';
  *     title?: string;
  *     url?: string;
  *     index?: number;
@@ -90,17 +92,11 @@ export async function saveBookmark(id, data) {
 
   const record = {
     id,
-
     parentId: data.parentId ?? existing?.parentId ?? null,
-
     title: data.title ?? existing?.title ?? '',
-
     url: data.url ?? existing?.url ?? '',
-
     index: data.index ?? existing?.index ?? 0,
-
     createdAt: existing?.createdAt ?? now,
-
     updatedAt: now,
   };
 
@@ -119,42 +115,31 @@ export async function deleteBookmark(id) {
  *
  * 返回: [ folder, child1, child2, ... ]
  */
-export async function getFolder(id) {
+export async function getWithAllDescendents(id) {
   const result = [];
 
   async function traverse(parentId) {
     const children = await bookmarksTable.where('parentId').equals(parentId).toArray();
 
-    // 没有子项则停止递归
-    if (children.length === 0) {
-      return;
-    }
+    if (children.length === 0) return;
 
     for (const item of children) {
       result.push(item);
-
-      // 继续递归检查该 item 是否还有子项
       await traverse(item.id);
     }
   }
 
-  // 获取根 folder
   const rootFolder = await bookmarksTable.get(id);
-
-  if (!rootFolder) {
-    return [];
-  }
-
+  if (!rootFolder) return [];
   result.push(rootFolder);
 
-  // 获取所有 descendants
   await traverse(id);
 
   return result;
 }
 
-export async function getFolderAsTree(id) {
-  const items = await getFolder(id);
+export async function getSubTree(id) {
+  const items = await getWithAllDescendents(id);
 
   if (!items.length) return null;
 

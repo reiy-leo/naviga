@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import EditBookmarkModal from './components/bookmark/EditBookmarkModal';
-import MoveBookmarkModal from './components/bookmark/MoveBookmarkModal';
+import MoveToWorkspaceModal from './components/bookmark/MoveToWorkspaceModal';
 import NavBar from './components/layout/NavBar';
 import SettingsModal from './components/layout/SettingsModal';
 import AllView from './components/workspace/AllView';
@@ -34,6 +34,8 @@ function App() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [moveBookmark, setMoveBookmark] = useState(null);
+  const [moveTitle, setMoveTitle] = useState(null);
+  const [moveType, setMoveType] = useState(null);
   const [moveModalOpen, setMoveModalOpen] = useState(false);
 
   // 全局回调，供书签菜单直接调用（避免 window 事件链路不稳定）
@@ -45,8 +47,10 @@ function App() {
     setEditModalOpen(true);
   }, []);
 
-  const openMoveModal = useCallback((bookmark) => {
+  const openMoveModal = useCallback((bookmark, title, moveType) => {
     setMoveBookmark(bookmark);
+    setMoveTitle(title);
+    setMoveType(moveType);
     setMoveModalOpen(true);
   }, []);
 
@@ -189,11 +193,14 @@ function App() {
       )}
 
       {moveModalOpen && (
-        <MoveBookmarkModal
+        <MoveToWorkspaceModal
           bookmark={moveBookmark}
+          title={moveTitle}
+          moveType={moveType}
           currentWorkspaceId={currentWorkspace}
           onClose={() => {
             setMoveModalOpen(false);
+            setMoveTitle(null);
             setMoveBookmark(null);
           }}
           onComplete={() => {
