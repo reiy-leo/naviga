@@ -1,5 +1,16 @@
 @import 'tailwindcss';
 @import '@heroui/react/styles';
+@source inline(
+  '{bg,border}-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate}-500'
+);
+@source inline(
+  'bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate}-500/10'
+);
+@source inline(
+  'border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate}-500/60'
+);
+@source inline('border-{solid,dotted,dashed,double}');
+@source inline('width,height');
 
 body {
   width: 100vw;

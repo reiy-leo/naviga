@@ -11,7 +11,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           try {
             const domain = new URL(tab.url).origin;
             // 优先保留 https 的 favicon（质量通常更好）
-            if (!faviconMap[domain] || tab.favIconUrl.startsWith('https://')) {
+            if (!faviconMap[domain]) {
               faviconMap[domain] = tab.favIconUrl;
             }
           } catch {
@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const response = await fetch(message.url);
         if (!response.ok) {
-          console.warn('[fetchFavicon] HTTP error:', response.status, message.url);
+          console.trace('[fetchFavicon] HTTP error:', response.status, message.url);
           sendResponse({ dataUrl: null });
           return;
         }
@@ -40,9 +40,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // 只要大小合理（< 100KB）就尝试转换
         const isImage = blob.type.startsWith('image/');
         const isOctetStream = blob.type === 'application/octet-stream';
-        const isSmallEnough = blob.size > 0 && blob.size < 100 * 1024;
+        const isSmallEnough = blob.size > 0 && blob.size < 900 * 1024;
         if (!isImage && !(isOctetStream && isSmallEnough)) {
-          console.warn('[fetchFavicon] Invalid blob:', blob.type, blob.size, message.url);
+          console.trace('[fetchFavicon] Invalid blob:', blob.type, blob.size, message.url);
           sendResponse({ dataUrl: null });
           return;
         }
@@ -53,17 +53,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (dataUrl && (dataUrl.startsWith('data:image/') || dataUrl.startsWith('data:application/octet-stream'))) {
             sendResponse({ dataUrl });
           } else {
-            console.warn('[fetchFavicon] Invalid dataUrl prefix for:', message.url);
+            console.trace('[fetchFavicon] Invalid dataUrl prefix for:', message.url);
             sendResponse({ dataUrl: null });
           }
         };
         reader.onerror = () => {
-          console.warn('[fetchFavicon] FileReader error for:', message.url);
+          console.trace('[fetchFavicon] FileReader error for:', message.url);
           sendResponse({ dataUrl: null });
         };
         reader.readAsDataURL(blob);
       } catch (err) {
-        console.warn('[fetchFavicon] fetch error:', err?.message || err, message.url);
+        console.trace('[fetchFavicon] fetch error:', err?.message || err, message.url);
         sendResponse({ dataUrl: null });
       }
     })();

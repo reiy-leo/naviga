@@ -3,64 +3,80 @@ import { FolderPlus, BookmarkPlus } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getWithAllDescendents } from '../../db/bookmarks';
+import { getWithAllDescendents, getSubTree } from '../../db/bookmarks';
 import { getShadowsOf } from '../../db/shadows';
 import { useBookmarks } from '../../hooks/useBookmarks';
 import { useAppStore } from '../../store/useAppStore';
 import { FolderWithOperations } from './FolderWithOperations';
 import UngroupedBookmarks from './UngroupedBookmarks';
 
-async function getShadowsOfWorkspace(id) {
+async function getShadowListOfWorkspace(id) {
   const all = await getWithAllDescendents(id);
   const allIds = all.map((item) => item.id),
     allShadows = getShadowsOf(allIds);
   return allShadows;
 }
-/**
- * 递归展平书签树，为每个书签记录完整文件夹路径 返回: groups ( Map<pathString, [bookmarks]> ) + directBookmarks 同时返回 folderIdMap (pathString →
- * folderId) 用于跨文件夹移动
- */
-function flattenBookmarks(items, parentPath = [], parentFolderIds = [], parentId = null, allShadows = []) {
+
+async function flattenBookmarkTreeWithShadows(
+  items,
+  parentPath = [],
+  parentFolderIds = [],
+  parentId = null,
+  allShadows = [],
+  isShadowFolder = false,
+) {
   const groups = new Map();
   const directBookmarks = [];
   const folderIdMap = new Map(); // pathString → {folderId, parentId} / folderId是最深层的子文件夹ID
 
   for (const item of items) {
-    if (item.url || item.shadowing) {
+    let item_i = item;
+    // 若是shadow bookmark或shadow folder，则添加children、url、title
+    if (item_i.shadowing) {
+      const shadowd = await getSubTree(item_i.shadowing);
+      if (shadowd.url) item_i = { ...item_i, url: shadowd.url };
+      if (shadowd.title) item_i = { ...item_i, title: shadowd.title };
+      if (shadowd.children) item_i = { ...item_i, children: shadowd.children };
+      console.info('shadowing', item_i);
+    }
+    if (item_i.url || !item_i.children) {
       // bookmark
       if (parentPath.length > 0) {
         const pathKey = parentPath.join(' / ');
         if (!groups.has(pathKey)) groups.set(pathKey, []);
         groups.get(pathKey).push({
-          ...item,
-          parentId: item.parentId,
+          ...item_i,
+          parentId: item_i.parentId,
         });
-        const folderIdPair = {
-          id: item.parentId,
+        const folderMeta = {
+          id: item_i.parentId,
           parentId: parentFolderIds[parentFolderIds.length - 2] ?? parentId,
+          shadowing: isShadowFolder,
         };
-        folderIdMap.set(pathKey, folderIdPair);
+        folderIdMap.set(pathKey, folderMeta);
       } else {
         directBookmarks.push({
-          ...item,
-          parentId: parentFolderIds[parentFolderIds.length - 1] || item.parentId,
+          ...item_i,
+          parentId: parentFolderIds[parentFolderIds.length - 1] || item_i.parentId,
         });
       }
-    } else if (item.children !== undefined) {
+    } else if (!item_i.url && item_i.children) {
       // folder
-      const subPath = [...parentPath, item.title];
-      const subFolderIds = [...parentFolderIds, item.id];
-      // 记录此文件夹的路径和 ID
-      const folderIdPair = { id: item.id, parentId: item.parentId };
-      folderIdMap.set(subPath.join(' / '), folderIdPair);
-      const directShadows = allShadows.filter((s) => s.parentId == item.id);
-
-      const sub = flattenBookmarks(
-        [...item.children, ...directShadows],
+      const subPath = [...parentPath, item_i.title];
+      const subFolderIds = [...parentFolderIds, item_i.id];
+      // folderIdMap
+      const folderMeta = { id: item_i.id, parentId: item_i.parentId, shadowing: !!item_i.shadowing };
+      folderIdMap.set(subPath.join(' / '), folderMeta);
+      // shadows
+      const directShadows = allShadows.filter((s) => s.parentId == item_i.id);
+      // 递归调用
+      const sub = await flattenBookmarkTreeWithShadows(
+        [...item_i.children, ...directShadows],
         subPath,
         subFolderIds,
-        item.parentId,
+        item_i.parentId,
         allShadows,
+        !!item_i.shadowing,
       );
       for (const [path, bookmarks] of sub.groups) {
         if (!groups.has(path)) groups.set(path, []);
@@ -114,11 +130,17 @@ function WorkspaceView({ workspaceId }) {
     try {
       const subTree = await chrome.bookmarks.getSubTree(workspaceId);
       const rootChildren = subTree[0]?.children || [];
-      // await persistBookmarks();
       // append direct shadows to rootChildren
-      const allShadows = await getShadowsOfWorkspace(workspaceId);
+      const allShadows = await getShadowListOfWorkspace(workspaceId);
       const directShadows = allShadows.filter((s) => s.parentId == workspaceId);
-      const result = flattenBookmarks([...rootChildren, ...directShadows], [], [workspaceId], null, allShadows);
+      const result = await flattenBookmarkTreeWithShadows(
+        [...rootChildren, ...directShadows],
+        [],
+        [workspaceId],
+        null,
+        allShadows,
+        false,
+      );
       setFlatData(result);
     } catch (err) {
       console.error('Failed to flatten bookmarks tree:', err);
@@ -305,7 +327,7 @@ function WorkspaceView({ workspaceId }) {
 
       {/* 按路径分组的书签 - 每组独立视图模式 + 拖拽支持 */}
       {Array.from(groups.entries()).map(([path, pathBookmarks]) => {
-        const { id, parentId } = folderIdMap.get(path);
+        const { id, parentId, shadowing } = folderIdMap.get(path);
         return (
           <FolderWithOperations
             key={path}
@@ -314,6 +336,7 @@ function WorkspaceView({ workspaceId }) {
             clickCounts={clickCounts}
             workspaceId={workspaceId}
             folderId={id}
+            isShadow={shadowing}
             parentId={parentId}
             allFolderIds={folderIdMap}
             onRefresh={buildFlatData}

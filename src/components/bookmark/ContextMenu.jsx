@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
 
 export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
-  console.log('isShadow', isShadow);
   const { t } = useTranslation();
   const { toggleFavorite } = useAppStore();
   const menuRef = useRef(null);

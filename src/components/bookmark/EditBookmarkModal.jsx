@@ -141,7 +141,9 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
         if (iconMode === 'manual' && iconValid && iconPreview) {
           try {
             const domain = new URL(finalUrl).origin;
-            useAppStore.getState().setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
+            useAppStore
+              .getState()
+              .setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
           } catch {}
         }
       } else if (mode === 'addSub') {
@@ -159,7 +161,9 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
         if (iconMode === 'manual' && iconValid && iconPreview) {
           try {
             const domain = new URL(finalUrl).origin;
-            useAppStore.getState().setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
+            useAppStore
+              .getState()
+              .setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
           } catch {}
         }
       } else if (isNew) {
@@ -173,7 +177,9 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
         if (iconMode === 'manual' && iconValid && iconPreview) {
           try {
             const domain = new URL(finalUrl).origin;
-            useAppStore.getState().setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
+            useAppStore
+              .getState()
+              .setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
           } catch {}
         }
       } else {
@@ -184,7 +190,9 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
         if (iconMode === 'manual' && iconValid && iconPreview) {
           try {
             const domain = new URL(finalUrl).origin;
-            useAppStore.getState().setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
+            useAppStore
+              .getState()
+              .setFaviconForDomain(domain, iconPreview, title.trim() || finalUrl, finalUrl, iconPreview);
           } catch {}
         }
       }
@@ -319,7 +327,9 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                     )}
                     <div className='min-w-0 flex-1'>
                       <div className='text-xs text-mist-600'>{t('autoFetchHint') || '将自动从网站获取图标'}</div>
-                      {existingFaviconUrl && <div className='mt-0.5 truncate text-[10px] text-mist-400'>{existingFaviconUrl}</div>}
+                      {existingFaviconUrl && (
+                        <div className='mt-0.5 truncate text-[10px] text-mist-400'>{existingFaviconUrl}</div>
+                      )}
                     </div>
                   </div>
                 )}

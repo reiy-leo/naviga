@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 
-import { useAppStore } from '../store/useAppStore';
-
 export function useBookmarks() {
   const [bookmarks, setBookmarks] = useState({});
   const [loading, setLoading] = useState(true);

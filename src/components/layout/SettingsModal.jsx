@@ -1,6 +1,42 @@
-import { Tabs, Modal, Label, Link, Button, Select, ListBox, Input, Separator, Description, Tooltip, ColorPicker, ColorArea, ColorSlider, ColorSwatch, ColorSwatchPicker, Radio, RadioGroup, toast } from '@heroui/react';
+import {
+  Tabs,
+  Modal,
+  Label,
+  Link,
+  Button,
+  Select,
+  ListBox,
+  Input,
+  Separator,
+  Description,
+  Tooltip,
+  ColorPicker,
+  ColorArea,
+  ColorSlider,
+  ColorSwatch,
+  ColorSwatchPicker,
+  Radio,
+  RadioGroup,
+  toast,
+} from '@heroui/react';
 import { US, CN, JP } from 'country-flag-icons/react/3x2';
-import { Upload, Download, RefreshCw, Plus, SquareX, Link as LinkIcon, Sun, Moon, Laptop, Image, Cannabis, ChevronUp, ChevronDown, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+import {
+  Upload,
+  Download,
+  RefreshCw,
+  Plus,
+  SquareX,
+  Link as LinkIcon,
+  Sun,
+  Moon,
+  Laptop,
+  Image,
+  Cannabis,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpToLine,
+  ArrowDownToLine,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -108,8 +144,31 @@ const LANG_ICONS = {
   ),
 };
 
+const shadowStyleBorders = ['solid', 'dotted', 'dashed', 'double'];
+const shadowStyleColors = [
+  'red',
+  'orange',
+  'amber',
+  'yellow',
+  'lime',
+  'green',
+  'emerald',
+  'teal',
+  'cyan',
+  'sky',
+  'blue',
+  'indigo',
+  'violet',
+  'purple',
+  'fuchsia',
+  'pink',
+  'rose',
+  'slate',
+];
+
 function SettingsModal({ onClose, defaultTab = 'general' }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [workspaceActiveTab, setWorkspaceActiveTab] = useState('workspaces_general');
   const { t, i18n } = useTranslation();
 
   const {
@@ -145,6 +204,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     setUngroupedBookmarkPosition,
     navbarIconSize,
     setNavbarIconSize,
+    shadowStyleColor,
+    setShadowStyleColor,
+    shadowStyleBorder,
+    setShadowStyleBorder,
+    getShadowStyle,
   } = useAppStore();
 
   const handleLanguageChange = (lang) => {
@@ -338,9 +402,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
         <Modal.Container
           placement='center'
           scroll='inside'>
-          <Modal.Dialog className='w-xl min-w-xl'>
+          <Modal.Dialog className='top-4 h-4/5 min-h-4/5 w-2xl min-w-2xl'>
             <Modal.CloseTrigger />
-            <Modal.Header className='-m-1.5'>
+            <Modal.Header className=''>
               <Modal.Heading className='mb-3 font-medium'>{t('settings')}</Modal.Heading>
             </Modal.Header>
             <Modal.Body
@@ -352,25 +416,32 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                 onSelectionChange={(key) => {
                   setActiveTab(key);
                 }}>
-                <Tabs.List aria-label='Settings tabs'>
-                  <Tabs.Tab id='general'>
-                    {t('general')}
-                    <Tabs.Indicator />
-                  </Tabs.Tab>
-                  <Tabs.Tab id='data'>
-                    {t('data')}
-                    <Tabs.Indicator />
-                  </Tabs.Tab>
-                  <Tabs.Tab id='workspace'>
-                    {t('workspace')}
-                    <Tabs.Indicator />
-                  </Tabs.Tab>
-                  <Tabs.Tab id='about'>
-                    {t('about')}
-                    <Tabs.Indicator />
-                  </Tabs.Tab>
-                </Tabs.List>
-
+                <Tabs.ListContainer>
+                  <Tabs.List
+                    aria-label='Settings tabs'
+                    className='*:w-[unset]'>
+                    <Tabs.Tab id='general'>
+                      {t('general')}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id='data'>
+                      {t('data')}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id='workspace'>
+                      {t('workspace')}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id='shadows'>
+                      {t('shadows')}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id='about'>
+                      {t('about')}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                  </Tabs.List>
+                </Tabs.ListContainer>
                 <Tabs.Panel id='general'>
                   <div className='mt-4 space-y-6'>
                     {/* Theme */}
@@ -389,7 +460,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                             <Radio
                               value={opt}
                               className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
-                              <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>{THEMES_ICONS[opt]}</Radio.Content>
+                              <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                                {THEMES_ICONS[opt]}
+                              </Radio.Content>
                             </Radio>
                             <Tooltip.Content
                               showArrow
@@ -424,31 +497,6 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                       </RadioGroup>
                     </div>
                     <Separator className='my-4' />
-
-                    {/* Icon Size */}
-                    <div>
-                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('iconSize')}</Label>
-                      <RadioGroup
-                        defaultValue={iconSize}
-                        value={iconSize}
-                        name='iconSize'
-                        orientation='horizontal'
-                        onChange={(value) => {
-                          setIconSize(value);
-                        }}>
-                        {ICON_SIZES.map((opt) => (
-                          <Radio
-                            value={opt}
-                            className='data-[selected=true]:bg-accent/20 h-16 w-16 rounded-lg'>
-                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
-                              {ICON_SIZE_ICONS[opt]}
-                              {/* <Label className='text-muted-foreground text-xs'>{t(opt)}</Label> */}
-                            </Radio.Content>
-                          </Radio>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                    <Separator className='mb-4' />
 
                     {/* Tab Display */}
                     <div>
@@ -566,111 +614,8 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                       </RadioGroup>
                     </div>
                     <Separator className='mb-4' />
-
-                    {/* Icon Rounded corner */}
-                    <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('card_corner')}</Label>
-                      <RadioGroup
-                        defaultValue={cardRoundSize}
-                        value={cardRoundSize}
-                        name='cardRoundSize'
-                        orientation='horizontal'
-                        onChange={(value) => {
-                          setCardRoundSize(value);
-                        }}>
-                        {cardRoundSizes.map((opt) => (
-                          <Radio
-                            value={opt}
-                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
-                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
-                              <Tooltip
-                                delay={0}
-                                trigger='hover'>
-                                {cardRoundSizeMap[opt]}
-                                <Tooltip.Content
-                                  showArrow
-                                  placement='top'>
-                                  <Tooltip.Arrow />
-                                  <p>{t(opt)}</p>
-                                </Tooltip.Content>
-                              </Tooltip>
-                            </Radio.Content>
-                          </Radio>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                    <Separator className='mb-4' />
-
-                    {/* 未分组 位置 */}
-                    <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('ungroup_pos')}</Label>
-                      <RadioGroup
-                        defaultValue={ungroupedBookmarkPosition}
-                        value={ungroupedBookmarkPosition}
-                        name='ungroupedBookmarkPosition'
-                        orientation='horizontal'
-                        onChange={(value) => {
-                          setUngroupedBookmarkPosition(value);
-                        }}>
-                        {ungroupedBookmarkPositions.map((opt) => (
-                          <Radio
-                            value={opt}
-                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
-                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
-                              <Tooltip
-                                delay={0}
-                                trigger='hover'>
-                                {ungroupedBookmarkPositionMap[opt]}
-                                <Tooltip.Content
-                                  showArrow
-                                  placement='top'>
-                                  <Tooltip.Arrow />
-                                  <p>{t(opt)}</p>
-                                </Tooltip.Content>
-                              </Tooltip>
-                            </Radio.Content>
-                          </Radio>
-                        ))}
-                      </RadioGroup>
-                    </div>
-                    <Separator className='mb-4' />
-
-                    {/* navbar 图标大小 */}
-                    <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('navbar_icon_size')}</Label>
-                      <RadioGroup
-                        defaultValue={navbarIconSize}
-                        value={navbarIconSize}
-                        name='navbarIconSize'
-                        orientation='horizontal'
-                        onChange={(value) => {
-                          setNavbarIconSize(value);
-                        }}>
-                        {navbarIconSizes.map((opt) => (
-                          <Radio
-                            value={opt}
-                            className='data-[selected=true]:bg-accent/20 h-12 w-24 rounded-lg'>
-                            <Radio.Content className={`flex h-full w-full flex-row items-center gap-2 px-2 py-2 ${getNavbarIconSize(opt)} font-medium`}>
-                              <Tooltip
-                                delay={0}
-                                trigger='hover'>
-                                <p className='shrink-1'>{defaultWorkspaceEmoji}</p>
-                                <p className='flex-1'>{t('workspace')}</p>
-                                <Tooltip.Content
-                                  showArrow
-                                  placement='top'>
-                                  <Tooltip.Arrow />
-                                  <p>{t(opt)}</p>
-                                </Tooltip.Content>
-                              </Tooltip>
-                            </Radio.Content>
-                          </Radio>
-                        ))}
-                      </RadioGroup>
-                    </div>
                   </div>
                 </Tabs.Panel>
-
                 <Tabs.Panel id='data'>
                   <div className='mt-4 space-y-6'>
                     {/* Import */}
@@ -746,184 +691,392 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                     </div>
                   </div>
                 </Tabs.Panel>
-
+                {/* MARK workspaces */}
                 <Tabs.Panel id='workspace'>
                   <div className='space-y-4 py-3'>
-                    {workspaces.map((ws) => {
-                      const meta = wsMeta[ws.id] || {};
-                      return (
-                        <div
-                          key={ws.id}
-                          className='flex flex-row gap-3 rounded-xl border-zinc-100 bg-mist-50/50 py-3 dark:border-zinc-700 dark:bg-zinc-800/50'>
-                          <div className='text-md flex h-9 w-12 shrink-0 items-center justify-end rounded-lg'>{meta.emoji || defaultWorkspaceEmoji}</div>
-                          <div className='flex h-10 flex-1 flex-col gap-3'>
-                            <Input
-                              size='sm'
-                              placeholder={t('workspaceName')}
-                              value={meta.text || ws.title}
-                              onChange={(e) => {
-                                const newText = e.target.value;
-                                const currentEmoji = meta.emoji || defaultWorkspaceEmoji;
-                                chrome.bookmarks.update(ws.id, {
-                                  title: `${currentEmoji} ${newText}`,
-                                });
-                                updateWsMeta(ws.id, { ...meta, text: newText });
-                              }}
-                              className='h-8 flex-1 rounded-sm border-0 text-sm font-medium'
-                            />
-                            <div className='flex flex-1 items-center gap-3'>
-                              <Input
-                                name='workspace-icon-emojis'
-                                placeholder={defaultWorkspaceEmoji}
-                                value={meta.emoji || ''}
-                                onChange={async (e) => {
-                                  const emojis = e.target.value.trim();
-                                  const newText = meta.text || ws.title;
-                                  const emojiCount = countEmojis(emojis);
-                                  if (emojiCount <= 3 && semanticLength(emojis) === emojiCount) {
-                                    updateWsMeta(ws.id, { ...meta, emoji: e.target.value });
-                                    await chrome.bookmarks.update(ws.id, {
-                                      title: `${emojis} ${newText}`,
-                                    });
-                                  } else {
-                                    toast(t('workspaceEmojiCountLimit'), {
-                                      description: t('workspaceEmojiCountHint'),
-                                      variant: 'danger',
-                                      indicator: <Cannabis className='text-red-400' />,
-                                    });
-                                  }
-                                }}
-                                className='flex-1 rounded-sm text-sm'
-                              />
-                              <ColorPicker
-                                defaultValue={colorToHex(meta.color)}
-                                onChange={(color) => {
-                                  updateWsMeta(ws.id, { ...meta, color: colorToHex(color) });
-                                }}
-                                className='flex-1'>
-                                <ColorPicker.Trigger>
-                                  <ColorSwatch
-                                    size='sm'
-                                    shape='square'
-                                    color={colorToHex(meta.color)}
-                                    className='h-8 w-full rounded-sm'
-                                  />
-                                </ColorPicker.Trigger>
-                                <ColorPicker.Popover>
-                                  <ColorArea
-                                    aria-label='Color area'
-                                    className='max-w-full'
-                                    colorSpace='hsb'
-                                    xChannel='saturation'
-                                    yChannel='brightness'>
-                                    <ColorArea.Thumb />
-                                  </ColorArea>
-                                  <ColorSlider
-                                    aria-label='Hue slider'
-                                    channel='hue'
-                                    className='gap-1 px-1'
-                                    colorSpace='hsb'>
-                                    <Label>{t('color_hue')}</Label>
-                                    <ColorSlider.Output className='text-muted' />
-                                    <ColorSlider.Track>
-                                      <ColorSlider.Thumb />
-                                    </ColorSlider.Track>
-                                  </ColorSlider>
-                                  <ColorSlider
-                                    aria-label='Alpha slider'
-                                    channel='alpha'
-                                    className='gap-1 px-1'
-                                    colorSpace='hsb'>
-                                    <Label>{t('color_alpha')}</Label>
-                                    <ColorSlider.Output className='text-muted' />
-                                    <ColorSlider.Track>
-                                      <ColorSlider.Thumb />
-                                    </ColorSlider.Track>
-                                  </ColorSlider>
-                                  <ColorSwatchPicker
-                                    className='justify-center px-1'
-                                    size='xs'>
-                                    {presets.map((preset) => (
-                                      <ColorSwatchPicker.Item
-                                        key={preset}
-                                        color={preset}>
-                                        <ColorSwatchPicker.Swatch />
-                                      </ColorSwatchPicker.Item>
-                                    ))}
-                                  </ColorSwatchPicker>
-                                </ColorPicker.Popover>
-                              </ColorPicker>
-                            </div>
+                    <Tabs
+                      selectedKey={workspaceActiveTab}
+                      variant='secondary'
+                      onSelectionChange={(key) => {
+                        setWorkspaceActiveTab(key);
+                      }}>
+                      <Tabs.ListContainer>
+                        <Tabs.List
+                          aria-label='Workspace tabs'
+                          className='*:w-[unset]'>
+                          <Tabs.Tab id='workspaces_general'>
+                            {t('workspaces_general')}
+                            <Tabs.Indicator />
+                          </Tabs.Tab>
+                          <Tabs.Tab id='workspaces_colors'>
+                            {t('workspaces_colors')}
+                            <Tabs.Indicator />
+                          </Tabs.Tab>
+                        </Tabs.List>
+                      </Tabs.ListContainer>
+                      <Tabs.Panel id='workspaces_general'>
+                        <div className='mt-4 space-y-6'>
+                          {/* Icon Size */}
+                          <div>
+                            <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('iconSize')}</Label>
+                            <RadioGroup
+                              defaultValue={iconSize}
+                              value={iconSize}
+                              name='iconSize'
+                              orientation='horizontal'
+                              onChange={(value) => {
+                                setIconSize(value);
+                              }}>
+                              {ICON_SIZES.map((opt) => (
+                                <Radio
+                                  value={opt}
+                                  className='data-[selected=true]:bg-accent/20 h-16 w-16 rounded-lg'>
+                                  <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                                    {ICON_SIZE_ICONS[opt]}
+                                    {/* <Label className='text-muted-foreground text-xs'>{t(opt)}</Label> */}
+                                  </Radio.Content>
+                                </Radio>
+                              ))}
+                            </RadioGroup>
                           </div>
-                          <div className='flex flex-col gap-1 py-2'>
-                            <Tooltip delay={300}>
-                              <Button
-                                isIconOnly
-                                size='sm'
-                                variant='ghost'
-                                onPress={() => handleDeleteWorkspace(ws.id)}>
-                                <SquareX
-                                  size={16}
-                                  className='text-red-200 hover:text-red-500'
-                                />
-                              </Button>
-                              <Tooltip.Content
-                                showArrow
-                                placement='right'>
-                                <Tooltip.Arrow />
-                                <p>{t('deleteWorkspace')}</p>
-                              </Tooltip.Content>
-                            </Tooltip>
-                            <Tooltip delay={300}>
-                              <Button
-                                isIconOnly
-                                size='sm'
-                                variant='ghost'
-                                onPress={() => handleWorkspaceOrderUp(ws.id, '1')}>
-                                <ChevronUp
-                                  className='text-zinc-200 hover:text-zinc-700'
-                                  size={16}
-                                />
-                              </Button>
-                              <Tooltip.Content
-                                showArrow
-                                placement='right'>
-                                <Tooltip.Arrow />
-                                <p>{t('moveWorkspaceUp')}</p>
-                              </Tooltip.Content>
-                            </Tooltip>
-                            <Tooltip delay={300}>
-                              <Button
-                                isIconOnly
-                                size='sm'
-                                variant='ghost'
-                                onPress={() => handleWorkspaceOrderDown(ws.id, '1')}>
-                                <ChevronDown
-                                  size={16}
-                                  className='text-zinc-200 hover:text-zinc-700'
-                                />
-                              </Button>
-                              <Tooltip.Content
-                                showArrow
-                                placement='right'>
-                                <Tooltip.Arrow />
-                                <p>{t('moveWorkspaceDown')}</p>
-                              </Tooltip.Content>
-                            </Tooltip>
+                          <Separator className='mb-4' />
+
+                          {/* Icon Rounded corner */}
+                          <div>
+                            <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('card_corner')}</Label>
+                            <RadioGroup
+                              defaultValue={cardRoundSize}
+                              value={cardRoundSize}
+                              name='cardRoundSize'
+                              orientation='horizontal'
+                              onChange={(value) => {
+                                setCardRoundSize(value);
+                              }}>
+                              {cardRoundSizes.map((opt) => (
+                                <Radio
+                                  value={opt}
+                                  className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                                  <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                                    <Tooltip
+                                      delay={0}
+                                      trigger='hover'>
+                                      {cardRoundSizeMap[opt]}
+                                      <Tooltip.Content
+                                        showArrow
+                                        placement='top'>
+                                        <Tooltip.Arrow />
+                                        <p>{t(opt)}</p>
+                                      </Tooltip.Content>
+                                    </Tooltip>
+                                  </Radio.Content>
+                                </Radio>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                          <Separator className='mb-4' />
+
+                          {/* navbar 标签大小 */}
+                          <div>
+                            <Label className='mb-3 block text-sm font-medium text-mist-400'>
+                              {t('navbar_icon_size')}
+                            </Label>
+                            <RadioGroup
+                              defaultValue={navbarIconSize}
+                              value={navbarIconSize}
+                              name='navbarIconSize'
+                              orientation='horizontal'
+                              onChange={(value) => {
+                                setNavbarIconSize(value);
+                              }}>
+                              {navbarIconSizes.map((opt) => (
+                                <Radio
+                                  value={opt}
+                                  className='data-[selected=true]:bg-accent/20 h-12 w-24 rounded-lg'>
+                                  <Radio.Content
+                                    className={`flex h-full w-full flex-row items-center gap-2 px-2 py-2 ${getNavbarIconSize(opt)} font-medium`}>
+                                    <Tooltip
+                                      delay={0}
+                                      trigger='hover'>
+                                      <p className='shrink-1'>{defaultWorkspaceEmoji}</p>
+                                      <p className='flex-1'>{t('workspace')}</p>
+                                      <Tooltip.Content
+                                        showArrow
+                                        placement='top'>
+                                        <Tooltip.Arrow />
+                                        <p>{t(opt)}</p>
+                                      </Tooltip.Content>
+                                    </Tooltip>
+                                  </Radio.Content>
+                                </Radio>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                          <Separator className='mb-4' />
+
+                          {/* 未分组 位置 */}
+                          <div>
+                            <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('ungroup_pos')}</Label>
+                            <RadioGroup
+                              defaultValue={ungroupedBookmarkPosition}
+                              value={ungroupedBookmarkPosition}
+                              name='ungroupedBookmarkPosition'
+                              orientation='horizontal'
+                              onChange={(value) => {
+                                setUngroupedBookmarkPosition(value);
+                              }}>
+                              {ungroupedBookmarkPositions.map((opt) => (
+                                <Radio
+                                  value={opt}
+                                  className='data-[selected=true]:bg-accent-soft-hover h-12 w-12 rounded-lg'>
+                                  <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
+                                    <Tooltip
+                                      delay={0}
+                                      trigger='hover'>
+                                      {ungroupedBookmarkPositionMap[opt]}
+                                      <Tooltip.Content
+                                        showArrow
+                                        placement='top'>
+                                        <Tooltip.Arrow />
+                                        <p>{t(opt)}</p>
+                                      </Tooltip.Content>
+                                    </Tooltip>
+                                  </Radio.Content>
+                                </Radio>
+                              ))}
+                            </RadioGroup>
                           </div>
                         </div>
-                      );
-                    })}
-                    <Button
-                      variant='bordered'
-                      onPress={handleCreateWorkspace}
-                      startContent={<Plus size={16} />}
-                      className='w-full border-2 border-dashed border-mist-300 text-mist-500 hover:border-mist-500 hover:text-mist-700'>
-                      {t('newWorkspace')}
-                    </Button>
+                      </Tabs.Panel>
+                      <Tabs.Panel id='workspaces_colors'>
+                        <div className='mt-4 space-y-6'>
+                          {workspaces.map((ws) => {
+                            const meta = wsMeta[ws.id] || {};
+                            return (
+                              <div
+                                key={ws.id}
+                                className='flex flex-row gap-3 rounded-xl border-zinc-100 bg-mist-50/50 py-3 dark:border-zinc-700 dark:bg-zinc-800/50'>
+                                <div className='text-md flex h-9 w-12 shrink-0 items-center justify-end rounded-lg'>
+                                  {meta.emoji || defaultWorkspaceEmoji}
+                                </div>
+                                <div className='flex h-10 flex-1 flex-col gap-3'>
+                                  <Input
+                                    size='sm'
+                                    placeholder={t('workspaceName')}
+                                    value={meta.text || ws.title}
+                                    onChange={(e) => {
+                                      const newText = e.target.value;
+                                      const currentEmoji = meta.emoji || defaultWorkspaceEmoji;
+                                      chrome.bookmarks.update(ws.id, {
+                                        title: `${currentEmoji} ${newText}`,
+                                      });
+                                      updateWsMeta(ws.id, { ...meta, text: newText });
+                                    }}
+                                    className='h-8 flex-1 rounded-sm border-0 text-sm font-medium'
+                                  />
+                                  <div className='flex flex-1 items-center gap-3'>
+                                    <Input
+                                      name='workspace-icon-emojis'
+                                      placeholder={defaultWorkspaceEmoji}
+                                      value={meta.emoji || ''}
+                                      onChange={async (e) => {
+                                        const emojis = e.target.value.trim();
+                                        const newText = meta.text || ws.title;
+                                        const emojiCount = countEmojis(emojis);
+                                        if (emojiCount <= 3 && semanticLength(emojis) === emojiCount) {
+                                          updateWsMeta(ws.id, { ...meta, emoji: e.target.value });
+                                          await chrome.bookmarks.update(ws.id, {
+                                            title: `${emojis} ${newText}`,
+                                          });
+                                        } else {
+                                          toast(t('workspaceEmojiCountLimit'), {
+                                            description: t('workspaceEmojiCountHint'),
+                                            variant: 'danger',
+                                            indicator: <Cannabis className='text-red-400' />,
+                                          });
+                                        }
+                                      }}
+                                      className='flex-1 rounded-sm text-sm'
+                                    />
+                                    <ColorPicker
+                                      defaultValue={colorToHex(meta.color)}
+                                      onChange={(color) => {
+                                        updateWsMeta(ws.id, { ...meta, color: colorToHex(color) });
+                                      }}
+                                      className='flex-1'>
+                                      <ColorPicker.Trigger>
+                                        <ColorSwatch
+                                          size='sm'
+                                          shape='square'
+                                          color={colorToHex(meta.color)}
+                                          className='h-8 w-full rounded-sm'
+                                        />
+                                      </ColorPicker.Trigger>
+                                      <ColorPicker.Popover>
+                                        <ColorArea
+                                          aria-label='Color area'
+                                          className='max-w-full'
+                                          colorSpace='hsb'
+                                          xChannel='saturation'
+                                          yChannel='brightness'>
+                                          <ColorArea.Thumb />
+                                        </ColorArea>
+                                        <ColorSlider
+                                          aria-label='Hue slider'
+                                          channel='hue'
+                                          className='gap-1 px-1'
+                                          colorSpace='hsb'>
+                                          <Label>{t('color_hue')}</Label>
+                                          <ColorSlider.Output className='text-muted' />
+                                          <ColorSlider.Track>
+                                            <ColorSlider.Thumb />
+                                          </ColorSlider.Track>
+                                        </ColorSlider>
+                                        <ColorSlider
+                                          aria-label='Alpha slider'
+                                          channel='alpha'
+                                          className='gap-1 px-1'
+                                          colorSpace='hsb'>
+                                          <Label>{t('color_alpha')}</Label>
+                                          <ColorSlider.Output className='text-muted' />
+                                          <ColorSlider.Track>
+                                            <ColorSlider.Thumb />
+                                          </ColorSlider.Track>
+                                        </ColorSlider>
+                                        <ColorSwatchPicker
+                                          className='justify-center px-1'
+                                          size='xs'>
+                                          {presets.map((preset) => (
+                                            <ColorSwatchPicker.Item
+                                              key={preset}
+                                              color={preset}>
+                                              <ColorSwatchPicker.Swatch />
+                                            </ColorSwatchPicker.Item>
+                                          ))}
+                                        </ColorSwatchPicker>
+                                      </ColorPicker.Popover>
+                                    </ColorPicker>
+                                  </div>
+                                </div>
+                                <div className='flex flex-col gap-1 py-2'>
+                                  <Tooltip delay={300}>
+                                    <Button
+                                      isIconOnly
+                                      size='sm'
+                                      variant='ghost'
+                                      onPress={() => handleDeleteWorkspace(ws.id)}>
+                                      <SquareX
+                                        size={16}
+                                        className='text-red-200 hover:text-red-500'
+                                      />
+                                    </Button>
+                                    <Tooltip.Content
+                                      showArrow
+                                      placement='right'>
+                                      <Tooltip.Arrow />
+                                      <p>{t('deleteWorkspace')}</p>
+                                    </Tooltip.Content>
+                                  </Tooltip>
+                                  <Tooltip delay={300}>
+                                    <Button
+                                      isIconOnly
+                                      size='sm'
+                                      variant='ghost'
+                                      onPress={() => handleWorkspaceOrderUp(ws.id, '1')}>
+                                      <ChevronUp
+                                        className='text-zinc-200 hover:text-zinc-700'
+                                        size={16}
+                                      />
+                                    </Button>
+                                    <Tooltip.Content
+                                      showArrow
+                                      placement='right'>
+                                      <Tooltip.Arrow />
+                                      <p>{t('moveWorkspaceUp')}</p>
+                                    </Tooltip.Content>
+                                  </Tooltip>
+                                  <Tooltip delay={300}>
+                                    <Button
+                                      isIconOnly
+                                      size='sm'
+                                      variant='ghost'
+                                      onPress={() => handleWorkspaceOrderDown(ws.id, '1')}>
+                                      <ChevronDown
+                                        size={16}
+                                        className='text-zinc-200 hover:text-zinc-700'
+                                      />
+                                    </Button>
+                                    <Tooltip.Content
+                                      showArrow
+                                      placement='right'>
+                                      <Tooltip.Arrow />
+                                      <p>{t('moveWorkspaceDown')}</p>
+                                    </Tooltip.Content>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <Button
+                            variant='bordered'
+                            onPress={handleCreateWorkspace}
+                            startContent={<Plus size={16} />}
+                            className='w-full border-2 border-dashed border-mist-300 text-mist-500 hover:border-mist-500 hover:text-mist-700'>
+                            {t('newWorkspace')}
+                          </Button>
+                        </div>
+                      </Tabs.Panel>
+                    </Tabs>
                   </div>
                 </Tabs.Panel>
-
+                <Tabs.Panel id='shadows'>
+                  <div className='mt-4 space-y-6'>
+                    {/* shadow bookmark/folder 样式 */}
+                    <div>
+                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('shadowStyle')}</Label>
+                      <RadioGroup
+                        defaultValue={shadowStyleColor}
+                        value={shadowStyleColor}
+                        name='shadowStyleColor'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setShadowStyleColor(value);
+                        }}>
+                        {shadowStyleColors.map((opt) => {
+                          const color = `bg-${opt}-500/10 border-${opt}-500/60`;
+                          const border = `${shadowStyleBorder === 'double' ? 'border-4' : 'border-2'} border-${shadowStyleBorder}`;
+                          return (
+                            <Radio
+                              value={opt}
+                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg`}>
+                              <Radio.Content className={`h-10 w-10 rounded-lg ${color} ${border}`}></Radio.Content>
+                            </Radio>
+                          );
+                        })}
+                      </RadioGroup>
+                      <Separator className='my-4' />
+                      <RadioGroup
+                        defaultValue={shadowStyleBorder}
+                        value={shadowStyleBorder}
+                        name='shadowStyleBorder'
+                        orientation='horizontal'
+                        onChange={(value) => {
+                          setShadowStyleBorder(value);
+                        }}>
+                        {shadowStyleBorders.map((opt) => {
+                          const border = `${opt === 'double' ? 'border-4' : 'border-2'} border-${opt}`;
+                          const color = `bg-${shadowStyleColor}-500/10 border-${shadowStyleColor}-500/60`;
+                          return (
+                            <Radio
+                              value={opt}
+                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg`}>
+                              <Radio.Content className={`h-10 w-10 rounded-lg ${border} ${color}`}></Radio.Content>
+                            </Radio>
+                          );
+                        })}
+                      </RadioGroup>
+                    </div>
+                  </div>
+                </Tabs.Panel>
                 <Tabs.Panel id='about'>
                   <div className='py-8 text-center'>
                     <div className='flex flex-col items-center justify-center gap-2'>
@@ -933,12 +1086,12 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         className='mx-auto mb-4 h-16 w-16 rounded-xl object-contain'
                       />
                       <div className='flex max-w-20 flex-col items-center'>
-                        <div className='mb-3 text-xl font-bold'>Naviga</div>
+                        <div className='mb-3 font-medium tracking-wide'>Naviga</div>
                         <div className='mb-8'>{t('version')} 1.0.0</div>
                       </div>
                     </div>
 
-                    <div className='mx-auto flex max-w-xs flex-col flex-row gap-3'>
+                    <div className='mx-auto flex max-w-xs flex-row gap-3 *:inline-block'>
                       <Link
                         className='flex-1 gap-1'
                         href='https://github.com/reiy-leo/naviga'>

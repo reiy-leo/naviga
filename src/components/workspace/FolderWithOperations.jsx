@@ -9,6 +9,7 @@ import {
   FolderX,
   LayoutGrid,
   LayoutList,
+  FolderRoot,
   Sparkles,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -24,12 +25,14 @@ export function FolderWithOperations({
   clickCounts,
   workspaceId,
   folderId,
+  isShadow,
   parentId,
   onRefresh,
   workspaceColor,
 }) {
+  console.log('isShadow', isShadow);
   const { t } = useTranslation();
-  const { setFolderViewMode, getFolderViewMode, iconSize } = useAppStore();
+  const { setFolderViewMode, getFolderViewMode, iconSize, getShadowStyle } = useAppStore();
   const viewMode = getFolderViewMode(path);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -163,7 +166,6 @@ export function FolderWithOperations({
   }, [folderId, folderName]);
 
   // 文件夹顺序
-  // MARK function up
   const handleFolderMoveUp = async (folderId, parentId) => {
     const children = await chrome.bookmarks.getChildren(parentId);
     const index = children.findIndex((x) => x.id === folderId);
@@ -183,7 +185,6 @@ export function FolderWithOperations({
     }
   };
 
-  // MARK founction down
   const handleFolderMoveDown = async (folderId, parentId) => {
     const children = await chrome.bookmarks.getChildren(parentId);
     const index = children.findIndex((x) => x.id === folderId);
@@ -303,7 +304,7 @@ export function FolderWithOperations({
   return (
     <div
       ref={containerRef}
-      className={`mb-6 rounded-xl transition-colors ${isDragOver ? 'bg-primary-500/5 ring-primary-500/20 ring-1' : ''}`}
+      className={`my-6 rounded-xl pb-3 transition-colors ${isShadow ? getShadowStyle() : ''} ${isDragOver ? 'bg-primary-500/5 ring-primary-500/20 ring-1' : ''}`}
       onDragOver={handleGroupDragOver}
       onDragLeave={handleGroupDragLeave}
       onDrop={handleGroupDrop}>
@@ -338,7 +339,6 @@ export function FolderWithOperations({
         <div className='flex flex-0 items-center gap-1'>
           <Tooltip delay={300}>
             <Button
-              // MARK move up
               onPress={() => handleFolderMoveUp(folderId, parentId)}
               isIconOnly
               variant='ghost'
@@ -354,7 +354,6 @@ export function FolderWithOperations({
           </Tooltip>
           <Tooltip delay={300}>
             <Button
-              // MARK move down
               onPress={() => handleFolderMoveDown(folderId, parentId)}
               isIconOnly
               variant='ghost'
@@ -402,6 +401,35 @@ export function FolderWithOperations({
               <p>{t('newSubFolder')}</p>
             </Tooltip.Content>
           </Tooltip>
+          {/* 新建影子 */}
+          {!isShadow && (
+            <Tooltip delay={300}>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.__navigaActions?.openMoveModal(
+                    { id: folderId },
+                    t('createShadowToWorkspace'),
+                    'shadowBookmark',
+                  );
+                }}
+                isIconOnly
+                variant='ghost'
+                className='hover:text-warning-500 hover:bg-warning-50 rounded-md p-1 text-mist-400 transition-colors'>
+                <FolderRoot size={16} />
+              </Button>
+              <Tooltip.Content
+                showArrow
+                placement='bottom'>
+                <Tooltip.Arrow />
+                <div className='max-w-xs px-1 py-1.5'>
+                  <p className='mb-1 font-semibold'>{t('shadowFolder')}</p>
+                  <p className='text-muted text-sm'>{t('shadowFolderHint')}</p>
+                </div>
+              </Tooltip.Content>
+            </Tooltip>
+          )}
+
           <Tooltip delay={300}>
             <Button
               onClick={handleDissolve}
@@ -543,7 +571,7 @@ export function FolderWithOperations({
         </div>
       ) : (
         <div
-          className='relative grid gap-5'
+          className='relative mx-3 grid gap-5'
           style={{ gridTemplateColumns: `repeat(auto-fill, ${gridColWidth})` }}>
           {sortedBookmarks.map((bookmark, index) => (
             <div

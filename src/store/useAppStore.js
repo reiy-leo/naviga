@@ -45,7 +45,8 @@ export const useAppStore = create(
 
         // \p{Extended_Pictographic} 只匹配图形化 emoji，不会误匹配数字、#、*
         // 支持 ZWJ 序列 (👨‍👩‍👧) 和变体选择器 (❤️)
-        const emojiRegex = /^((?:\p{Extended_Pictographic}(?:\uFE0F?|\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Component}))*)+)/u;
+        const emojiRegex =
+          /^((?:\p{Extended_Pictographic}(?:\uFE0F?|\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Component}))*)+)/u;
         const match = title.match(emojiRegex);
 
         if (match && match[1]) {
@@ -67,6 +68,14 @@ export const useAppStore = create(
       // 主题设置
       theme: 'dark',
       setTheme: (theme) => set({ theme }),
+
+      shadowStyleColor: 'violet',
+      setShadowStyleColor: (shadowStyleColor) => set({ shadowStyleColor }),
+      shadowStyleBorder: 'dashed',
+      setShadowStyleBorder: (shadowStyleBorder) => set({ shadowStyleBorder }),
+      getShadowStyle: () => {
+        return `${get().shadowStyleBorder === 'double' ? 'border-4' : 'border-2'} border-${get().shadowStyleColor}-500/60 bg-${get().shadowStyleColor}-500/10 border-${get().shadowStyleBorder}`;
+      },
 
       maxSubBookmarks: 5, // 每个书签的最大子书签数量
       setMaxSubBookmarks: (max) => set({ maxSubBookmarks: max }),
@@ -194,7 +203,6 @@ export const useAppStore = create(
           function tranvese(node) {
             if (node && node.children) {
               node.children.forEach((item) => {
-                // console.log('persist item', item, item.id);
                 saveBookmark(item.id, {
                   id: item.id,
                   parentId: item.parentId,
@@ -210,7 +218,6 @@ export const useAppStore = create(
               });
             }
           }
-          console.log(bar, bar.dateAdded, bar.dateGroupModified);
 
           await saveBookmark(bar.id, {
             id: bar.id,
@@ -502,6 +509,12 @@ export const useAppStore = create(
                   theme: stored.state.theme || 'dark',
                   background: stored.state.background || 'default',
                   iconSize: stored.state.iconSize || 'medium',
+                  shadowStyleColor: stored.state.shadowStyleColor || 'violet',
+                  shadowStyleBorder: stored.state.shadowStyleBorder || 'dashed',
+                  bookmarkCardRadius: stored.state.bookmarkCardRadius || 'md',
+                  navbarIconSize: stored.state.navbarIconSize || 'nbi_sm',
+                  cardRoundSize: stored.state.cardRoundSize || 'card_small',
+                  ungroupedBookmarkPosition: stored.state.ungroupedBookmarkPosition || 'top',
                   tabDisplay: stored.state.tabDisplay || 'both',
                   showTabBar: stored.state.showTabBar !== false,
                   defaultWorkspace: stored.state.defaultWorkspace || 'all',
@@ -534,6 +547,8 @@ export const useAppStore = create(
         background: state.background,
         iconSize: state.iconSize,
         defaultWorkspaceEmoji: state.defaultWorkspaceEmoji,
+        shadowStyleColor: state.shadowStyleColor,
+        shadowStyleBorder: state.shadowStyleBorder,
         maxSubBookmarks: state.maxSubBookmarks,
         tabDisplay: state.tabDisplay,
         showTabBar: state.showTabBar,
@@ -542,6 +557,10 @@ export const useAppStore = create(
         startupWorkspace: state.startupWorkspace,
         lastWorkspace: state.lastWorkspace,
         language: state.language,
+        bookmarkCardRadius: state.bookmarkCardRadius,
+        navbarIconSize: state.navbarIconSize,
+        cardRoundSize: state.cardRoundSize,
+        ungroupedBookmarkPosition: state.ungroupedBookmarkPosition,
         wsMeta: state.wsMeta,
         clickCounts: state.clickCounts,
         subBookmarks: state.subBookmarks,

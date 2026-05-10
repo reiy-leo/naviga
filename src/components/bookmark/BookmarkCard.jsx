@@ -28,6 +28,7 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
     fetchFaviconAsDataUrl,
     iconSize,
     cardRoundSize,
+    getShadowStyle,
   } = useAppStore();
   const [imageError, setImageError] = useState(false);
   const [menuPos, setMenuPos] = useState(null);
@@ -332,8 +333,8 @@ function BookmarkCard({ bookmark, viewMode, workspaceColor, style, draggable = f
             draggable={draggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`h-full w-full border p-1 ${cardRoundSizeMap[cardRoundSize]} ${bookmark_shadowing ? 'border-2 border-dotted border-violet-600' : 'border-solid'}`}
-            style={cardStyle}>
+            className={`h-full w-full border p-1 ${cardRoundSizeMap[cardRoundSize]} ${bookmark_shadowing ? getShadowStyle() : ''}`}
+            style={!bookmark_shadowing ? cardStyle : {}}>
             <CardContent className='flex flex-col items-center justify-center gap-2 p-1'>
               <div
                 className={`${sizeConfig.container} flex flex-0 items-center justify-center rounded-md text-2xl`}

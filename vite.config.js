@@ -6,7 +6,26 @@ import lucidePreprocess from 'vite-plugin-lucide-preprocess';
 
 export default defineConfig({
   base: './',
-  plugins: [lucidePreprocess(), react(), tailwindcss()],
+  oxc: {
+    transform: {
+      jsxRuntime: 'automatic',
+    },
+  },
+  plugins: [
+    lucidePreprocess(),
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler', 'eslint-plugin-perfectionist'],
+      },
+    }),
+    tailwindcss({
+      safelist: [
+        {
+          pattern: /(bg|border)-([a-z]+)-([1-9]00)/,
+        },
+      ],
+    }),
+  ],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
