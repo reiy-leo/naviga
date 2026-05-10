@@ -2,9 +2,31 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "oxc"],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
   },
-  "rules": {},
+  "rules": {
+    "no-unused-vars": "error",
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-dupe-keys": "error",
+    "no-const-assign": "error",
+    "use-isnan": "error",
+    "no-console": "warn",
+    "no-sparse-arrays": "error",
+    "no-debugger": "error",
+    "no-prototype-builtins": "warn",
+    "react/jsx-key": "error",
+    "react/no-direct-mutation-state": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "consistent-type-imports": "error",
+    "no-non-null-assertion": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "import/order": "error"
+  },
   "env": {
     "builtin": true
   }

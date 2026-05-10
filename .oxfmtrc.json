@@ -1,13 +1,28 @@
 {
-  "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [],
-  "singleQuote": true,
-  "sortImports": true,
-  "sortTailwindcss": true,
-  "sortPackageJson": true,
   "bracketSameLine": true,
+  "ignorePatterns": [],
   "jsdoc": true,
   "jsxSingleQuote": true,
+  "printWidth": 120,
   "singleAttributePerLine": true,
-  "printWidth": 240
+  "singleQuote": true,
+  "sortImports": {
+    "groups": [
+      "type-import",
+      ["value-builtin", "value-external"],
+      "type-internal",
+      "value-internal",
+      ["type-parent", "type-sibling", "type-index"],
+      ["value-parent", "value-sibling", "value-index"],
+      "unknown"
+    ],
+    "newlinesBetween": true
+  },
+  "sortPackageJson": {
+    "sortScripts": true
+  },
+  "sortTailwindcss": {
+    "functions": ["clsx", "cn"],
+    "preserveWhitespace": true
+  }
 }
