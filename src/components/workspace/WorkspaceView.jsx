@@ -23,11 +23,10 @@ async function flattenBookmarkTreeWithShadows(
   parentFolderIds = [],
   parentId = null,
   allShadows = [],
-  isShadowFolder = false,
 ) {
   const groups = new Map();
   const directBookmarks = [];
-  const folderIdMap = new Map(); // pathString → {folderId, parentId} / folderId是最深层的子文件夹ID
+  const folderIdMap = new Map(); // pathString → {id, parentId, shadowing?} / folderId是最深层的子文件夹ID
 
   for (const item of items) {
     let item_i = item;
@@ -37,7 +36,6 @@ async function flattenBookmarkTreeWithShadows(
       if (shadowd.url) item_i = { ...item_i, url: shadowd.url };
       if (shadowd.title) item_i = { ...item_i, title: shadowd.title };
       if (shadowd.children) item_i = { ...item_i, children: shadowd.children };
-      console.info('shadowing', item_i);
     }
     if (item_i.url || !item_i.children) {
       // bookmark
@@ -48,12 +46,6 @@ async function flattenBookmarkTreeWithShadows(
           ...item_i,
           parentId: item_i.parentId,
         });
-        const folderMeta = {
-          id: item_i.parentId,
-          parentId: parentFolderIds[parentFolderIds.length - 2] ?? parentId,
-          shadowing: isShadowFolder,
-        };
-        folderIdMap.set(pathKey, folderMeta);
       } else {
         directBookmarks.push({
           ...item_i,
@@ -76,7 +68,6 @@ async function flattenBookmarkTreeWithShadows(
         subFolderIds,
         item_i.parentId,
         allShadows,
-        !!item_i.shadowing,
       );
       for (const [path, bookmarks] of sub.groups) {
         if (!groups.has(path)) groups.set(path, []);
@@ -94,7 +85,6 @@ async function flattenBookmarkTreeWithShadows(
       }
     }
   }
-
   return { groups, directBookmarks, folderIdMap };
 }
 
@@ -113,6 +103,7 @@ function WorkspaceView({ workspaceId }) {
   });
   const [flattening, setFlattening] = useState(false);
 
+  // MARK buildFlatData
   const buildFlatData = useCallback(async () => {
     if (!workspaceId || workspaceItems.length === 0) {
       setFlatData({
@@ -131,14 +122,14 @@ function WorkspaceView({ workspaceId }) {
       const subTree = await chrome.bookmarks.getSubTree(workspaceId);
       const rootChildren = subTree[0]?.children || [];
       // append direct shadows to rootChildren
-      const allShadows = await getShadowListOfWorkspace(workspaceId);
-      const directShadows = allShadows.filter((s) => s.parentId == workspaceId);
+      const workspaceShadows = await getShadowListOfWorkspace(workspaceId);
+      const directShadows = workspaceShadows.filter((s) => s.parentId == workspaceId);
       const result = await flattenBookmarkTreeWithShadows(
         [...rootChildren, ...directShadows],
         [],
         [workspaceId],
         null,
-        allShadows,
+        workspaceShadows,
         false,
       );
       setFlatData(result);
@@ -338,7 +329,6 @@ function WorkspaceView({ workspaceId }) {
             folderId={id}
             isShadow={shadowing}
             parentId={parentId}
-            allFolderIds={folderIdMap}
             onRefresh={buildFlatData}
             workspaceColor={wsColor}
           />
