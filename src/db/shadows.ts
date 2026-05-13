@@ -1,6 +1,6 @@
-import Dexie from 'dexie';
+import { Dexie } from 'dexie';
 
-import { ShadowBookmark } from '@/types';
+import type { ShadowBookmark } from '@/types';
 /**
  * Naviga Shadows IndexedDB 浏览器端本地数据库
  *
@@ -25,9 +25,7 @@ class ShadowsDB extends Dexie {
       this.close();
     });
 
-    this.on('blocked', () => {
-      console.warn('DB upgrade blocked');
-    });
+    this.on('blocked', () => {});
   }
 }
 

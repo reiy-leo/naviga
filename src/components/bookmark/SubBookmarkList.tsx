@@ -56,7 +56,7 @@ function SubBookmarkListItem({
 
   const handleSubEdit = (e: React.MouseEvent, sub: any) => {
     e.stopPropagation();
-    window.__navigaActions?.openEditModal(null, { id: parentId }, sub, undefined);
+    window.__navigaActions__?.openEditModal(null, { id: parentId }, sub, undefined);
     onClose();
   };
 

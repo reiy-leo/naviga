@@ -1,11 +1,12 @@
+/// <reference types="@types/chrome" />
 import type { ReactNode } from 'react';
 
-import EditBookmarkModal from '@cpn/bookmark/EditBookmarkModal';
-import MoveToWorkspaceModal from '@cpn/bookmark/MoveToWorkspaceModal';
-import NavBar from '@cpn/layout/NavBar';
-import SettingsModal from '@cpn/layout/SettingsModal';
-import AllView from '@cpn/workspace/AllView';
-import WorkspaceView from '@cpn/workspace/WorkspaceView';
+import EditBookmarkModal from '#bookmark/EditBookmarkModal';
+import MoveToWorkspaceModal from '#bookmark/MoveToWorkspaceModal';
+import NavBar from '#layout/NavBar';
+import SettingsModal from '#layout/SettingsModal';
+import AllView from '#workspace/AllView';
+import WorkspaceView from '#workspace/WorkspaceView';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,7 +17,7 @@ import { useAppStore } from '@/store/useAppStore';
 // 扩展 Window 接口以包含自定义属性
 declare global {
   interface Window {
-    __navigaActions?: {
+    __navigaActions__?: {
       openEditModal: (bookmark: any, parentBookmark?: any, subBookmark?: any, targetFolderId?: string) => void;
       openMoveModal: (bookmark: any, title: string, moveType: string) => void;
     };
@@ -75,9 +76,9 @@ function App(): ReactNode {
   }, []);
 
   useEffect(() => {
-    window.__navigaActions = { openEditModal, openMoveModal };
+    window.__navigaActions__ = { openEditModal, openMoveModal };
     return () => {
-      delete window.__navigaActions;
+      delete window.__navigaActions__;
     };
   }, [openEditModal, openMoveModal]);
 

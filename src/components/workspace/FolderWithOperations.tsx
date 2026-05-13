@@ -423,7 +423,7 @@ export function FolderWithOperations({
           <Tooltip delay={300}>
             <Button
               onClick={() => {
-                window.__navigaActions?.openEditModal(null, null, null, folderId);
+                window.__navigaActions__?.openEditModal(null, null, null, folderId);
               }}
               isIconOnly
               variant='ghost'
@@ -459,7 +459,7 @@ export function FolderWithOperations({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.__navigaActions?.openMoveModal(
+                  window.__navigaActions__?.openMoveModal(
                     { id: folderId },
                     t('createShadowToWorkspace'),
                     'shadowBookmark',

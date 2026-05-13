@@ -17,7 +17,7 @@ export interface ChromeBookmarkNode {
 }
 
 /** 书签数据（IndexedDB 存储） */
-export interface Bookmark {
+export interface BookmarkItem {
   id: string;
   parentId?: string | null;
   syncing: boolean;
@@ -26,7 +26,7 @@ export interface Bookmark {
   index: number;
   createdAt: number;
   updatedAt: number;
-  children?: Bookmark[];
+  children?: BookmarkItem[];
 }
 
 /** 子书签 */
@@ -44,7 +44,7 @@ export interface ShadowBookmark {
   index: number;
   url?: string;
   title?: string;
-  children?: Bookmark[] | chrome.bookmarks.BookmarkTreeNode[];
+  children?: BookmarkItem[] | chrome.bookmarks.BookmarkTreeNode[];
   createdAt?: number;
   UpdatedAt?: number;
 }
@@ -74,12 +74,21 @@ export interface FaviconRecord {
   url: string;
 }
 
+export interface FaviconItem {
+  domain: string;
+  name: string;
+  favicon: string;
+  favIconUrl: string;
+  url: string;
+  updatedAt: number;
+}
+
 /** 工作区 */
-export interface Workspace {
+export interface WorkspaceItem {
   id: string;
   title: string;
   order?: number;
-  children?: Bookmark[];
+  children?: BookmarkItem[];
 }
 
 /** 主题类型 */

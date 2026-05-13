@@ -25,9 +25,17 @@
     "no-non-null-assertion": "error",
     "import/no-cycle": "error",
     "import/no-duplicates": "error",
-    "import/order": "error"
+    "no-underscore-dangling": [
+      "warn",
+      {
+        "allow": ["__navigaActions__"]
+      }
+    ]
   },
   "env": {
-    "builtin": true
+    "builtin": true,
+    "browser": true,
+    "webextensions": true,
+    "node": true
   }
 }

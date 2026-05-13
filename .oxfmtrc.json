@@ -6,17 +6,21 @@
   "printWidth": 120,
   "singleAttributePerLine": true,
   "singleQuote": true,
+  "semi": true,
   "sortImports": {
+    "type": "alphabetical",
+    "order": "asc",
+    "ignoreCase": true,
+    "newlinesBetween": true,
     "groups": [
-      "type-import",
-      ["value-builtin", "value-external"],
-      "type-internal",
-      "value-internal",
-      ["type-parent", "type-sibling", "type-index"],
-      ["value-parent", "value-sibling", "value-index"],
+      "type",
+      ["builtin", "external"],
+      "internal",
+      ["parent", "sibling", "index"],
+      ["side_effect", "side_effect_style"],
+      "style",
       "unknown"
-    ],
-    "newlinesBetween": true
+    ]
   },
   "sortPackageJson": {
     "sortScripts": true

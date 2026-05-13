@@ -12,10 +12,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["chrome"],
+    "types": ["chrome", "node"],
     "paths": {
       "@/*": ["./src/*"],
-      "@cpn/*": ["./src/components/*"]
+      "#*": ["./src/components/*"]
     }
   },
   "include": ["src/**/*"],

@@ -4,10 +4,10 @@ import { persist } from 'zustand/middleware';
 import type {
   Theme,
   FaviconRecord,
-  Workspace,
   SubBookmark,
   FaviconMap,
-  Bookmark,
+  WorkspaceItem,
+  BookmarkItem,
   StartupMode,
   TabDisplay,
   IconSize,
@@ -84,8 +84,8 @@ interface AppStore {
   setCardRoundSize: (size: CardRoundSize) => void;
 
   // 工作区
-  workspaces: Workspace[];
-  setWorkspaces: (workspaces: Workspace[]) => void;
+  workspaces: WorkspaceItem[];
+  setWorkspaces: (workspaces: WorkspaceItem[]) => void;
   wsMeta: WorkspaceMeta;
   setWsMeta: (wsMeta: WorkspaceMeta) => void;
   updateWsMeta: (folderId: string, meta: WorkspaceMeta[string]) => void;
@@ -269,7 +269,7 @@ export const useAppStore = create<AppStore>()(
         set({ ungroupedBookmarkPosition }),
 
       workspaces: [],
-      setWorkspaces: (workspaces: Workspace[]) => set({ workspaces }),
+      setWorkspaces: (workspaces: WorkspaceItem[]) => set({ workspaces }),
 
       getDefaultColorForWorkspace: (workspaceId: string) => {
         const colors = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#ff6d01', '#46bdc6', '#7b61ff', '#f538a0'];
@@ -288,8 +288,8 @@ export const useAppStore = create<AppStore>()(
                 id: folder.id,
                 title: folder.title,
                 order: folder.index,
-                children: [] as Bookmark[],
-              })) as Workspace[];
+                children: [] as BookmarkItem[],
+              })) as WorkspaceItem[];
 
             const currentMeta = get().wsMeta;
             const updates: WorkspaceMeta = {};
@@ -309,9 +309,7 @@ export const useAppStore = create<AppStore>()(
               wsMeta: { ...currentMeta, ...updates },
             });
           }
-        } catch (error) {
-          console.error('Failed to init workspaces:', error);
-        }
+        } catch {}
       },
 
       persistBookmarks: async () => {
@@ -338,20 +336,20 @@ export const useAppStore = create<AppStore>()(
               });
             }
           }
-
-          await saveBookmark(bar!.id, {
-            id: bar!.id,
-            parentId: bar!.parentId,
-            title: bar!.title,
-            createdAt: bar!.dateAdded,
-            updatedAt: bar!.dateGroupModified,
-            index: bar!.index,
-            url: bar!.url ?? null,
-          });
-          traverse(bar!);
-        } catch (error) {
-          console.error('Failed to persist chrome.bookmarks:', error);
-        }
+          if (bar) {
+            await saveBookmark(bar.id, {
+              id: bar.id,
+              parentId: bar.parentId,
+              title: bar.title,
+              createdAt: bar.dateAdded,
+              updatedAt: bar.dateGroupModified,
+              index: bar.index,
+              url: bar.url ?? null,
+            });
+            traverse(bar);
+          } else {
+          }
+        } catch {}
       },
 
       wsMeta: {},
@@ -421,7 +419,7 @@ export const useAppStore = create<AppStore>()(
       updateSubBookmark: (parentId: string, subId: string, data: Partial<SubBookmark>) =>
         set((state) => {
           const current = state.subBookmarks[parentId] || [];
-          const updated = current.map((sub) => (sub.id === subId ? { ...sub, ...data } : sub));
+          const updated = current.map((sub) => (sub.id === subId ? Object.assign(sub, data) : sub));
           return {
             subBookmarks: {
               ...state.subBookmarks,
@@ -449,12 +447,8 @@ export const useAppStore = create<AppStore>()(
         const updated = { ...get().faviconCache, [domain]: record };
         set({ faviconCache: updated });
         saveFavicon(domain, { favicon: dataUrl, favIconUrl, name, url })
-          .then((saved) => {
-            console.debug('[favicon] saved to IndexedDB:', domain, saved?.favicon?.length, 'bytes');
-          })
-          .catch((err) => {
-            console.error('[favicon] FAILED to save to IndexedDB:', domain, err);
-          });
+          .then((_) => {})
+          .catch((_) => {});
       },
       clearFaviconForDomain: (domain: string) => {
         const updated = { ...get().faviconCache };
@@ -466,7 +460,7 @@ export const useAppStore = create<AppStore>()(
         try {
           const map = await getAllFavicons();
           const count = Object.keys(map).length;
-          console.debug('[favicon] loaded from IndexedDB:', count, 'domains');
+
           if (count > 0) {
             set({ faviconCache: map });
           } else {
@@ -493,9 +487,7 @@ export const useAppStore = create<AppStore>()(
               }
             }
           }
-        } catch (err) {
-          console.error('Failed to load favicon cache from IndexedDB:', err);
-        }
+        } catch {}
       },
 
       tabFavicons: {},
@@ -515,12 +507,10 @@ export const useAppStore = create<AppStore>()(
                 }
               }
             }
-          } catch (error: any) {
-            console.error('error fetchTabFavicons', error.message || error);
+          } catch {
             // Service worker 尚未启动时会出现 "Receiving end does not exist"
           }
         } else {
-          console.error('error fetchTabFavicons 2');
         }
       },
       fetchFaviconAsDataUrl: async (url: string) => {
@@ -533,16 +523,13 @@ export const useAppStore = create<AppStore>()(
             if (response?.dataUrl) {
               return response.dataUrl;
             }
-          } catch (err) {
-            console.warn('[favicon] sendMessage failed:', err, url);
-          }
+          } catch {}
         }
         return null;
       },
       fetchAndCacheFavicon: async (domain: string, favIconUrl: string) => {
         if (!domain) return;
         if (fetchingDomains.has(domain)) {
-          console.debug('[favicon] already fetching:', domain);
           return;
         }
         const memCache = get().faviconCache;
@@ -550,7 +537,6 @@ export const useAppStore = create<AppStore>()(
         try {
           const existing = await getFavicon(domain);
           if (existing?.favicon) {
-            console.debug('[favicon] already in IndexedDB, skip:', domain);
             const updated = {
               ...memCache,
               [domain]: {
@@ -575,14 +561,12 @@ export const useAppStore = create<AppStore>()(
           }
           const fallbackUrl = `${domain}/favicon.ico`;
           if (fallbackUrl !== favIconUrl) {
-            console.debug('[favicon] trying fallback:', domain, fallbackUrl);
             dataUrl = await get().fetchFaviconAsDataUrl(fallbackUrl);
             if (dataUrl) {
               get().setFaviconForDomain(domain, dataUrl, '', '', fallbackUrl);
               return;
             }
           }
-          console.warn('[favicon] all fetches failed for:', domain);
         } finally {
           fetchingDomains.delete(domain);
         }
@@ -622,9 +606,7 @@ export const useAppStore = create<AppStore>()(
                 });
               }
             }
-          } catch (error) {
-            console.error('Failed to load from chrome storage:', error);
-          }
+          } catch {}
         }
       },
     }),

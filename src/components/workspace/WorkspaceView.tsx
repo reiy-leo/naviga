@@ -41,7 +41,7 @@ async function flattenBookmarkTreeWithShadows(
     // 若是shadow bookmark或shadow folder，则添加children、url、title
     const shadowing = (item as ShadowBookmark).shadowing;
     if (shadowing) {
-      const shadowd = await getSubTree(shadowing);
+      const shadowd = await getSubTree({ id: shadowing });
       if (shadowd && shadowd.url) item_i = { ...item_i, url: shadowd.url };
       if (shadowd && shadowd.title) item_i = { ...item_i, title: shadowd.title };
       if (shadowd && shadowd.children)
@@ -268,8 +268,8 @@ function WorkspaceView({ workspaceId }: WorkspaceViewProps) {
                 <Button
                   isIconOnly
                   variant='ghost'
-                  onPress={() => window.__navigaActions?.openEditModal(null, null, null, undefined)}
-                  onClick={() => window.__navigaActions?.openEditModal(null, null, null, undefined)}
+                  onPress={() => window.__navigaActions__?.openEditModal(null, null, null, undefined)}
+                  onClick={() => window.__navigaActions__?.openEditModal(null, null, null, undefined)}
                   className='rounded-md'>
                   <BookmarkPlus size={20} />
                 </Button>

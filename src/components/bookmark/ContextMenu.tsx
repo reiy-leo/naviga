@@ -81,7 +81,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }: Contex
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
         variant='ghost'
         onClick={() => {
-          window.__navigaActions?.openEditModal(bookmark, undefined, undefined, undefined);
+          window.__navigaActions__?.openEditModal(bookmark, undefined, undefined, undefined);
           onClose();
         }}>
         <Pencil
@@ -96,7 +96,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }: Contex
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
         variant='ghost'
         onClick={() => {
-          window.__navigaActions?.openEditModal(undefined, bookmark, undefined, undefined);
+          window.__navigaActions__?.openEditModal(undefined, bookmark, undefined, undefined);
           onClose();
         }}>
         <BookmarkPlus
@@ -128,7 +128,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }: Contex
         variant='ghost'
         onClick={(e) => {
           e.stopPropagation();
-          window.__navigaActions?.openMoveModal(bookmark, t('moveToWorkspace'), 'moveBookmark');
+          window.__navigaActions__?.openMoveModal(bookmark, t('moveToWorkspace'), 'moveBookmark');
           onClose();
         }}>
         <Folder
@@ -143,7 +143,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }: Contex
           variant='ghost'
           onClick={(e) => {
             e.stopPropagation();
-            window.__navigaActions?.openMoveModal(bookmark, t('createShadowToWorkspace'), 'shadowBookmark');
+            window.__navigaActions__?.openMoveModal(bookmark, t('createShadowToWorkspace'), 'shadowBookmark');
             onClose();
           }}>
           <SquareDashed
