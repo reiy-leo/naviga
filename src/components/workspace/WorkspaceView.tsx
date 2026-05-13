@@ -3,46 +3,57 @@ import { FolderPlus, BookmarkPlus } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { getWithAllDescendents, getSubTree } from '../../db/bookmarks';
-import { getShadowsOf } from '../../db/shadows';
-import { useBookmarks } from '../../hooks/useBookmarks';
-import { useAppStore } from '../../store/useAppStore';
+import { getWithAllDescendents, getSubTree } from '@/db/bookmarks';
+import { getShadowsOf } from '@/db/shadows';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useAppStore } from '@/store/useAppStore';
+import { ShadowBookmark } from '@/types';
+
 import { FolderWithOperations } from './FolderWithOperations';
 import UngroupedBookmarks from './UngroupedBookmarks';
 
-async function getShadowListOfWorkspace(id) {
+interface FlattenResult {
+  groups: Map<string, chrome.bookmarks.BookmarkTreeNode[]>;
+  directBookmarks: chrome.bookmarks.BookmarkTreeNode[];
+  folderIdMap: Map<string, { id: string; parentId: string; shadowing?: boolean }>;
+}
+
+async function getShadowListOfWorkspace(id: string): Promise<ShadowBookmark[]> {
   const all = await getWithAllDescendents(id);
-  const allIds = all.map((item) => item.id),
-    allShadows = getShadowsOf(allIds);
-  return allShadows;
+  const allIds = all.map((item) => item.id);
+  const allShadows = await getShadowsOf(allIds);
+  return allShadows as unknown as ShadowBookmark[];
 }
 
 async function flattenBookmarkTreeWithShadows(
-  items,
-  parentPath = [],
-  parentFolderIds = [],
-  parentId = null,
-  allShadows = [],
-) {
-  const groups = new Map();
-  const directBookmarks = [];
-  const folderIdMap = new Map(); // pathString → {id, parentId, shadowing?} / folderId是最深层的子文件夹ID
+  items: (chrome.bookmarks.BookmarkTreeNode | ShadowBookmark)[],
+  parentPath: string[] = [],
+  parentFolderIds: string[] = [],
+  parentId: string | null = null,
+  allShadows: ShadowBookmark[] = [],
+): Promise<FlattenResult> {
+  const groups = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
+  const directBookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
+  const folderIdMap = new Map<string, { id: string; parentId: string; shadowing?: boolean }>();
 
   for (const item of items) {
-    let item_i = item;
+    let item_i = item as chrome.bookmarks.BookmarkTreeNode;
     // 若是shadow bookmark或shadow folder，则添加children、url、title
-    if (item_i.shadowing) {
-      const shadowd = await getSubTree(item_i.shadowing);
-      if (shadowd.url) item_i = { ...item_i, url: shadowd.url };
-      if (shadowd.title) item_i = { ...item_i, title: shadowd.title };
-      if (shadowd.children) item_i = { ...item_i, children: shadowd.children };
+    const shadowing = (item as ShadowBookmark).shadowing;
+    if (shadowing) {
+      const shadowd = await getSubTree(shadowing);
+      if (shadowd && shadowd.url) item_i = { ...item_i, url: shadowd.url };
+      if (shadowd && shadowd.title) item_i = { ...item_i, title: shadowd.title };
+      if (shadowd && shadowd.children)
+        item_i = { ...item_i, children: shadowd.children as chrome.bookmarks.BookmarkTreeNode[] };
     }
+
     if (item_i.url || !item_i.children) {
       // bookmark
       if (parentPath.length > 0) {
         const pathKey = parentPath.join(' / ');
         if (!groups.has(pathKey)) groups.set(pathKey, []);
-        groups.get(pathKey).push({
+        groups.get(pathKey)!.push({
           ...item_i,
           parentId: item_i.parentId,
         });
@@ -57,7 +68,7 @@ async function flattenBookmarkTreeWithShadows(
       const subPath = [...parentPath, item_i.title];
       const subFolderIds = [...parentFolderIds, item_i.id];
       // folderIdMap
-      const folderMeta = { id: item_i.id, parentId: item_i.parentId, shadowing: !!item_i.shadowing };
+      const folderMeta = { id: item_i.id!, parentId: item_i.parentId!, shadowing: !!shadowing };
       folderIdMap.set(subPath.join(' / '), folderMeta);
       // shadows
       const directShadows = allShadows.filter((s) => s.parentId == item_i.id);
@@ -71,7 +82,7 @@ async function flattenBookmarkTreeWithShadows(
       );
       for (const [path, bookmarks] of sub.groups) {
         if (!groups.has(path)) groups.set(path, []);
-        groups.get(path).push(...bookmarks);
+        groups.get(path)!.push(...bookmarks);
       }
       directBookmarks.push(...sub.directBookmarks);
       // 合并 folderIdMap
@@ -88,7 +99,11 @@ async function flattenBookmarkTreeWithShadows(
   return { groups, directBookmarks, folderIdMap };
 }
 
-function WorkspaceView({ workspaceId }) {
+interface WorkspaceViewProps {
+  workspaceId: string;
+}
+
+function WorkspaceView({ workspaceId }: WorkspaceViewProps) {
   const { t } = useTranslation();
   const { bookmarks, loading } = useBookmarks();
   const { workspaces, wsMeta, clickCounts, ungroupedBookmarkPosition } = useAppStore();
@@ -96,7 +111,7 @@ function WorkspaceView({ workspaceId }) {
   const workspaceItems = bookmarks[workspaceId] || [];
 
   // 递归获取完整子树并展平
-  const [flatData, setFlatData] = useState({
+  const [flatData, setFlatData] = useState<FlattenResult>({
     groups: new Map(),
     directBookmarks: [],
     folderIdMap: new Map(),
@@ -125,26 +140,25 @@ function WorkspaceView({ workspaceId }) {
       const workspaceShadows = await getShadowListOfWorkspace(workspaceId);
       const directShadows = workspaceShadows.filter((s) => s.parentId == workspaceId);
       const result = await flattenBookmarkTreeWithShadows(
-        [...rootChildren, ...directShadows],
+        [...rootChildren, ...directShadows] as any,
         [],
         [workspaceId],
         null,
         workspaceShadows,
-        false,
       );
       setFlatData(result);
     } catch (err) {
       console.error('Failed to flatten bookmarks tree:', err);
       const folders = workspaceItems.filter((item) => !item.url);
       const directBookmarks = workspaceItems.filter((item) => item.url).map((b) => ({ ...b, parentId: workspaceId }));
-      const groups = new Map();
-      const folderIdMap = new Map();
+      const groups = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
+      const folderIdMap = new Map<string, { id: string; parentId: string }>();
       for (const folder of folders) {
         groups.set(
           folder.title,
           (folder.children || []).map((b) => ({ ...b, parentId: folder.id })),
         );
-        folderIdMap.set(folder.title, { id: folder.id, parentId: folder.parentId });
+        folderIdMap.set(folder.title, { id: folder.id, parentId: folder.parentId || '' });
       }
       setFlatData({ groups, directBookmarks, folderIdMap });
     } finally {
@@ -164,7 +178,7 @@ function WorkspaceView({ workspaceId }) {
   // 在工作区下新建文件夹（inline 输入）— hooks 必须在早返回之前
   const [newFolderInput, setNewFolderInput] = useState(false);
   const [newFolderValue, setNewFolderValue] = useState('');
-  const newFolderInputRef = useRef(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewFolderClick = () => {
     setNewFolderValue('');
@@ -194,7 +208,7 @@ function WorkspaceView({ workspaceId }) {
     setNewFolderValue('');
   };
 
-  const handleNewFolderKeyDown = (e) => {
+  const handleNewFolderKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleNewFolderConfirm();
@@ -204,7 +218,7 @@ function WorkspaceView({ workspaceId }) {
     }
   };
 
-  const handleWsTitleDrop = async (e) => {
+  const handleWsTitleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setWsTitleDragOver(false);
     try {
@@ -254,8 +268,8 @@ function WorkspaceView({ workspaceId }) {
                 <Button
                   isIconOnly
                   variant='ghost'
-                  onPress={() => window.__navigaActions?.openEditModal(null, null, null, null)}
-                  onClick={() => window.__navigaActions?.openEditModal(null, null, null, null)}
+                  onPress={() => window.__navigaActions?.openEditModal(null, null, null, undefined)}
+                  onClick={() => window.__navigaActions?.openEditModal(null, null, null, undefined)}
                   className='rounded-md'>
                   <BookmarkPlus size={20} />
                 </Button>
@@ -318,7 +332,9 @@ function WorkspaceView({ workspaceId }) {
 
       {/* 按路径分组的书签 - 每组独立视图模式 + 拖拽支持 */}
       {Array.from(groups.entries()).map(([path, pathBookmarks]) => {
-        const { id, parentId, shadowing } = folderIdMap.get(path);
+        const folderMeta = folderIdMap.get(path);
+        if (!folderMeta) return null;
+        const { id, parentId, shadowing } = folderMeta;
         return (
           <FolderWithOperations
             key={path}
@@ -327,7 +343,7 @@ function WorkspaceView({ workspaceId }) {
             clickCounts={clickCounts}
             workspaceId={workspaceId}
             folderId={id}
-            isShadow={shadowing}
+            isShadow={!!shadowing}
             parentId={parentId}
             onRefresh={buildFlatData}
             workspaceColor={wsColor}

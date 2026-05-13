@@ -7,7 +7,20 @@ import Dexie from 'dexie';
 
 const DB_NAME = 'naviga-data';
 
+interface SubBookmarkRecord {
+  id: string;
+  parentId: string;
+  title: string;
+  index: number;
+  dateCreated: number;
+  dateModified: number;
+  url?: string;
+  note?: string;
+}
+
 class SubBookmarksDB extends Dexie {
+  sub_bookmarks!: Dexie.Table<SubBookmarkRecord, string>;
+
   constructor() {
     super(DB_NAME);
 
@@ -19,46 +32,25 @@ class SubBookmarksDB extends Dexie {
 
 const db = new SubBookmarksDB();
 
-/**
- * Sub_bookmarks table
- *
- * @type {import('dexie').Table<
- *   {
- *     id: string;
- *     parentId: string;
- *     title: string;
- *     index: number;
- *     dateCreated: number;
- *     dateModified: number;
- *     url?: string;
- *     note?: string;
- *   },
- *   string
- * >}
- */
-const subBookmarksTable = db.table('sub_bookmarks');
+const subBookmarksTable = db.table<SubBookmarkRecord, string>('sub_bookmarks');
 
 /** 获取单个 sub bookmark */
-export async function getSubBookmark(id) {
+export async function getSubBookmark(id: string): Promise<SubBookmarkRecord | null> {
   return (await subBookmarksTable.get(id)) || null;
 }
 
-/**
- * 添加 sub bookmark
- *
- * @param {{
- *   id: string;
- *   parentId: string;
- *   title: string;
- *   index?: number;
- *   url?: string;
- *   note?: string;
- * }} data
- */
-export async function addSubBookmark(data) {
+/** 添加 sub bookmark */
+export async function addSubBookmark(data: {
+  id: string;
+  parentId: string;
+  title: string;
+  index?: number;
+  url?: string;
+  note?: string;
+}): Promise<SubBookmarkRecord> {
   const now = Date.now();
 
-  const record = {
+  const record: SubBookmarkRecord = {
     id: data.id,
     parentId: data.parentId,
     title: data.title,
@@ -70,31 +62,32 @@ export async function addSubBookmark(data) {
   };
 
   await subBookmarksTable.add(record);
-
   return record;
 }
 
 /** 修改 sub bookmark */
-export async function updateSubBookmark(id, data) {
+export async function updateSubBookmark(
+  id: string,
+  data: Partial<SubBookmarkRecord>
+): Promise<SubBookmarkRecord | null> {
   const existing = await subBookmarksTable.get(id);
 
   if (!existing) {
     return null;
   }
 
-  const record = {
+  const record: SubBookmarkRecord = {
     ...existing,
     ...data,
     dateModified: Date.now(),
   };
 
   await subBookmarksTable.put(record);
-
   return record;
 }
 
 /** 删除 sub bookmark */
-export async function deleteSubBookmark(id) {
+export async function deleteSubBookmark(id: string): Promise<void> {
   await subBookmarksTable.delete(id);
 }
 

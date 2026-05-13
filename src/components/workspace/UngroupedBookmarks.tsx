@@ -6,18 +6,24 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
 import BookmarkCard from '../bookmark/BookmarkCard';
 
-function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
+interface UngroupedBookmarksProps {
+  workspaceId: string;
+  directBookmarks: chrome.bookmarks.BookmarkTreeNode[];
+  workspaceColor: string;
+}
+
+function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }: UngroupedBookmarksProps) {
   const { t } = useTranslation();
   const { setFolderViewMode, getFolderViewMode, iconSize, clickCounts } = useAppStore();
 
   // 拖拽状态
   const [isDirectDragOver, setIsDirectDragOver] = useState(false);
-  const [directDragOverIndex, setDirectDragOverIndex] = useState(null);
-  const directContainerRef = useRef(null);
+  const [directDragOverIndex, setDirectDragOverIndex] = useState<number | null>(null);
+  const directContainerRef = useRef<HTMLDivElement>(null);
 
   // 直接书签的视图模式（持久化）
   const directViewMode = getFolderViewMode(`__direct_${workspaceId}`);
-  const setDirectViewMode = (mode) => setFolderViewMode(`__direct_${workspaceId}`, mode);
+  const setDirectViewMode = (mode: 'list' | 'grid' | 'smart') => setFolderViewMode(`__direct_${workspaceId}`, mode);
 
   // 直接书签的智能排序
   const sortedDirectBookmarks = useMemo(() => {
@@ -30,19 +36,19 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
   }, [directBookmarks, directViewMode, clickCounts]);
 
   // ── 直接书签区域拖拽处理 ──
-  const handleDirectDragStart = (e, bookmark) => {
+  const handleDirectDragStart = (e: any, bookmark: chrome.bookmarks.BookmarkTreeNode) => {
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData(
-      'application/bookmark',
-      JSON.stringify({
-        id: bookmark.id,
-        parentId: bookmark.parentId || workspaceId,
-        title: bookmark.title,
-        url: bookmark.url,
-        sourceFolderId: workspaceId,
-        sourcePath: '__direct',
-      }),
-    );
+    const data = {
+      id: bookmark.id,
+      parentId: bookmark.parentId || workspaceId,
+      title: bookmark.title,
+      url: bookmark.url,
+      sourceFolderId: workspaceId,
+      sourcePath: '__direct',
+      isShadow: !!(bookmark as any).shadowing || false,
+    };
+
+    e.dataTransfer.setData('application/bookmark', JSON.stringify(data));
   };
 
   const handleDirectDragEnd = () => {
@@ -50,20 +56,20 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
     setIsDirectDragOver(false);
   };
 
-  const handleDirectDragOver = (e) => {
+  const handleDirectDragOver = (e: any) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setIsDirectDragOver(true);
   };
 
-  const handleDirectDragLeave = (e) => {
-    if (directContainerRef.current && !directContainerRef.current.contains(e.relatedTarget)) {
+  const handleDirectDragLeave = (e: any) => {
+    if (directContainerRef.current && !directContainerRef.current.contains(e.relatedTarget as Node)) {
       setIsDirectDragOver(false);
       setDirectDragOverIndex(null);
     }
   };
 
-  const handleDirectDrop = async (e) => {
+  const handleDirectDrop = async (e: any) => {
     e.preventDefault();
     setIsDirectDragOver(false);
     setDirectDragOverIndex(null);
@@ -82,7 +88,7 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
     }
   };
 
-  const handleDirectItemDragOver = (e, index) => {
+  const handleDirectItemDragOver = (e: any, index: number) => {
     e.preventDefault();
     e.stopPropagation();
     setDirectDragOverIndex(index);
@@ -113,7 +119,7 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
               isIconOnly
               variant='ghost'
               onClick={() => setDirectViewMode('list')}
-              className={`rounded-md p-1 transition-colors`}>
+              className={`rounded-md p-1 transition-colors ${directViewMode === 'list' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
               <LayoutList size={16} />
             </Button>
             <Tooltip.Content
@@ -128,7 +134,7 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
               onClick={() => setDirectViewMode('grid')}
               isIconOnly
               variant='ghost'
-              className={`rounded-md p-1 transition-colors`}>
+              className={`rounded-md p-1 transition-colors ${directViewMode === 'grid' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
               <LayoutGrid size={16} />
             </Button>
             <Tooltip.Content
@@ -143,7 +149,7 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
               onClick={() => setDirectViewMode('smart')}
               variant='ghost'
               isIconOnly
-              className={`rounded-md p-1 transition-colors`}>
+              className={`rounded-md p-1 transition-colors ${directViewMode === 'smart' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
               <Sparkles size={16} />
             </Button>
             <Tooltip.Content
@@ -161,14 +167,16 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
             <div
               key={bookmark.id}
               className='relative'
-              onDragOver={(e) => handleDirectItemDragOver(e, index)}>
-              {directDragOverIndex === index && <div className='bg-primary-500 absolute top-0 right-0 left-0 z-10 h-0.5 -translate-y-1 rounded-full' />}
+              onDragOver={(e: any) => handleDirectItemDragOver(e, index)}>
+              {directDragOverIndex === index && (
+                <div className='bg-primary-500 absolute top-0 right-0 left-0 z-10 h-0.5 -translate-y-1 rounded-full' />
+              )}
               <BookmarkCard
                 bookmark={bookmark}
                 viewMode='list'
                 workspaceColor={workspaceColor}
                 draggable
-                onDragStart={handleDirectDragStart}
+                onDragStart={(e: any) => handleDirectDragStart(e, bookmark)}
                 onDragEnd={handleDirectDragEnd}
               />
             </div>
@@ -184,13 +192,13 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
             <div
               key={bookmark.id}
               className='relative'
-              onDragOver={(e) => handleDirectItemDragOver(e, index)}>
+              onDragOver={(e: any) => handleDirectItemDragOver(e, index)}>
               <BookmarkCard
                 bookmark={bookmark}
                 viewMode={directViewMode}
                 workspaceColor={workspaceColor}
                 draggable
-                onDragStart={handleDirectDragStart}
+                onDragStart={(e: any) => handleDirectDragStart(e, bookmark)}
                 onDragEnd={handleDirectDragEnd}
               />
             </div>
@@ -200,4 +208,5 @@ function UngroupedBookmarks({ workspaceId, directBookmarks, workspaceColor }) {
     </div>
   );
 }
+
 export default UngroupedBookmarks;

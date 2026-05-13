@@ -3,12 +3,21 @@ import { BookmarkPlus, Folder, Pencil, RefreshCw, Star, StarOff, Trash2, SquareD
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 
-export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  isShadow: boolean;
+  bookmark: any;
+  isFav: boolean;
+  onClose: () => void;
+}
+
+export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }: ContextMenuProps) {
   const { t } = useTranslation();
   const { toggleFavorite } = useAppStore();
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const menuWidth = 180;
   const menuHeight = 240;
@@ -18,11 +27,11 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
   if (adjustedY + menuHeight > window.innerHeight) adjustedY = window.innerHeight - menuHeight - 8;
 
   useEffect(() => {
-    const handleClick = (e) => {
-      if (menuRef.current && menuRef.current.contains(e.target)) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
       onClose();
     };
-    const handleContextMenu = (e) => {
+    const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       onClose();
     };
@@ -72,7 +81,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
         variant='ghost'
         onClick={() => {
-          window.__navigaActions?.openEditModal(bookmark, null, null, null);
+          window.__navigaActions?.openEditModal(bookmark, undefined, undefined, undefined);
           onClose();
         }}>
         <Pencil
@@ -87,7 +96,7 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
         variant='ghost'
         onClick={() => {
-          window.__navigaActions?.openEditModal(null, bookmark, null, null);
+          window.__navigaActions?.openEditModal(undefined, bookmark, undefined, undefined);
           onClose();
         }}>
         <BookmarkPlus
@@ -100,7 +109,8 @@ export function ContextMenu({ x, y, isShadow, bookmark, isFav, onClose }) {
       <Button
         className='w-full place-content-start rounded-none px-4 py-2.5 text-sm text-mist-950 transition-colors hover:bg-mist-100'
         variant='ghost'
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           window.dispatchEvent(new CustomEvent('refresh-icon', { detail: bookmark }));
           onClose();
         }}>

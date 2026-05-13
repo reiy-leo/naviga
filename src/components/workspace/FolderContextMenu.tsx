@@ -3,9 +3,30 @@ import { BookmarkPlus, FolderMinus, FolderPlus, FolderX, Pencil } from 'lucide-r
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, onClose, onRefresh }) {
+import { deleteShadow } from '../../db/shadows';
+
+interface FolderContextMenuProps {
+  x: number;
+  y: number;
+  folderId: string;
+  folderTitle?: string;
+  isShadow: boolean;
+  workspaceId: string;
+  onClose: () => void;
+  onRefresh?: () => void;
+}
+
+export function FolderContextMenu({
+  x,
+  y,
+  folderId,
+  isShadow,
+  workspaceId,
+  onClose,
+  onRefresh,
+}: FolderContextMenuProps) {
   const { t } = useTranslation();
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const menuWidth = 180;
   const menuHeight = 260;
@@ -15,11 +36,11 @@ export function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, on
   if (adjustedY + menuHeight > window.innerHeight) adjustedY = window.innerHeight - menuHeight - 8;
 
   useEffect(() => {
-    const handleClick = (e) => {
-      if (menuRef.current && menuRef.current.contains(e.target)) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
       onClose();
     };
-    const handleContextMenu = (e) => {
+    const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       onClose();
     };
@@ -42,6 +63,14 @@ export function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, on
     onClose();
     // 通过 CustomEvent 通知 FolderGroup 进入编辑模式
     window.dispatchEvent(new CustomEvent('folder-rename', { detail: { folderId } }));
+  };
+
+  const handleShadowDelete = async () => {
+    // 删除shadow
+    console.info('shadow delete', folderId);
+    await deleteShadow(folderId);
+    // 更新allShadows让当前workspace页面刷新
+    onRefresh?.();
   };
 
   // 新建子文件夹
@@ -102,16 +131,18 @@ export function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, on
       className='bg-content1 animate-slide-down fixed z-9999 max-w-55 min-w-45 rounded-xl border border-mist-200 py-1 shadow-lg'
       style={{ left: adjustedX, top: adjustedY }}
       onClick={(e) => e.stopPropagation()}>
-      <Button
-        className='hover:bg-accent w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
-        variant='ghost'
-        onClick={handleRename}>
-        <Pencil
-          size={16}
-          className='text-mist-400'
-        />
-        {t('rename')}
-      </Button>
+      {!isShadow && (
+        <Button
+          className='hover:bg-accent w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
+          variant='ghost'
+          onClick={handleRename}>
+          <Pencil
+            size={16}
+            className='text-mist-400'
+          />
+          {t('rename')}
+        </Button>
+      )}
       <Button
         className='hover:bg-accent w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
         variant='ghost'
@@ -133,23 +164,36 @@ export function FolderContextMenu({ x, y, folderId, folderTitle, workspaceId, on
         {t('newSubFolder')}
       </Button>
       <div className='my-1 border-t border-mist-200' />
-      <Button
-        className='hover:bg-accent w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
-        variant='ghost'
-        onClick={handleDissolve}>
-        <FolderMinus
-          size={16}
-          className='text-warning-500'
-        />
-        {t('dissolveFolder')}
-      </Button>
-      <Button
-        className='hover:bg-danger-50 text-danger-500 w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
-        variant='ghost'
-        onClick={handleDelete}>
-        <FolderX size={16} />
-        {t('deleteFolder')}
-      </Button>
+      {!isShadow && (
+        <Button
+          className='hover:bg-accent w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
+          variant='ghost'
+          onClick={handleDissolve}>
+          <FolderMinus
+            size={16}
+            className='text-warning-500'
+          />
+          {t('dissolveFolder')}
+        </Button>
+      )}
+      {!isShadow && (
+        <Button
+          className='hover:bg-danger-50 text-danger-500 w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
+          variant='ghost'
+          onClick={handleDelete}>
+          <FolderX size={16} />
+          {t('deleteFolder')}
+        </Button>
+      )}
+      {isShadow && (
+        <Button
+          className='hover:bg-danger-50 text-danger-500 w-full place-content-start rounded-none px-4 py-2.5 text-sm transition-colors'
+          variant='ghost'
+          onClick={handleShadowDelete}>
+          <FolderX size={16} />
+          {t('deleteShadowFolder')}
+        </Button>
+      )}
     </div>
   );
 }

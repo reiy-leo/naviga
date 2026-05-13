@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import lucidePreprocess from 'vite-plugin-lucide-preprocess';
+// import zip from 'vite-plugin-zip-pack';
 
 export default defineConfig({
   base: './',
@@ -18,13 +19,8 @@ export default defineConfig({
         plugins: ['babel-plugin-react-compiler', 'eslint-plugin-perfectionist'],
       },
     }),
-    tailwindcss({
-      safelist: [
-        {
-          pattern: /(bg|border)-([a-z]+)-([1-9]00)/,
-        },
-      ],
-    }),
+    tailwindcss(),
+    // zip({ outDir: 'release', outFileName: `crx-${manifest.name}-${manifest.version}.zip` }),
   ],
   build: {
     outDir: 'dist',
@@ -45,10 +41,6 @@ export default defineConfig({
   },
   publicDir: 'public',
   optimizeDeps: {
-    output: {
-      advancedChunks: {
-        groups: [{ name: 'vendor', test: /\/react(?:-dom)?/ }],
-      },
-    },
+    include: ['react', 'react-dom'],
   },
 });

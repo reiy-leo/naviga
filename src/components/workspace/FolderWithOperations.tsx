@@ -15,9 +15,22 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { deleteShadow, saveShadow } from '../../db/shadows';
 import { useAppStore } from '../../store/useAppStore';
 import BookmarkCard from '../bookmark/BookmarkCard';
 import { FolderContextMenu } from './FolderContextMenu';
+
+interface FolderWithOperationsProps {
+  path: string;
+  bookmarks: chrome.bookmarks.BookmarkTreeNode[];
+  clickCounts: Record<string, number>;
+  workspaceId: string;
+  folderId: string;
+  isShadow: boolean;
+  parentId: string;
+  onRefresh?: () => void;
+  workspaceColor: string;
+}
 
 export function FolderWithOperations({
   path,
@@ -29,34 +42,37 @@ export function FolderWithOperations({
   parentId,
   onRefresh,
   workspaceColor,
-}) {
-  console.log('isShadow', isShadow);
+}: FolderWithOperationsProps) {
   const { t } = useTranslation();
   const { setFolderViewMode, getFolderViewMode, iconSize, getShadowStyle } = useAppStore();
   const viewMode = getFolderViewMode(path);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const dragOverClassNames = useMemo(() => {
+    return `bg-accent-soft-hover`;
+  }, [workspaceColor]);
 
   // 双击编辑状态
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const editInputRef = useRef(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   // 右键菜单
-  const [menuPos, setMenuPos] = useState(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   // 从 path 中提取当前文件夹名（取最后一段）
   const folderName = path.includes(' / ') ? path.split(' / ').pop() : path;
 
-  const handleViewModeChange = (mode) => {
+  const handleViewModeChange = (mode: 'list' | 'grid' | 'smart') => {
     setFolderViewMode(path, mode);
   };
 
   // 新建子文件夹 — 弹出 inline 输入
   const [newSubInput, setNewSubInput] = useState(false);
   const [newSubValue, setNewSubValue] = useState('');
-  const newSubInputRef = useRef(null);
+  const newSubInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewSubFolderClick = () => {
     setNewSubValue('');
@@ -83,7 +99,7 @@ export function FolderWithOperations({
     setNewSubValue('');
   };
 
-  const handleNewSubKeyDown = (e) => {
+  const handleNewSubKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleNewSubConfirm();
@@ -97,11 +113,11 @@ export function FolderWithOperations({
   const handleDissolve = async () => {
     try {
       const folder = await chrome.bookmarks.get(folderId);
-      const parentId = folder[0]?.parentId || workspaceId;
+      const resolvedParentId = folder[0]?.parentId || workspaceId;
       const children = await chrome.bookmarks.getChildren(folderId);
       // 将所有子项移到父文件夹
       for (const child of children) {
-        await chrome.bookmarks.move(child.id, { parentId });
+        await chrome.bookmarks.move(child.id, { parentId: resolvedParentId });
       }
       // 删除空文件夹
       await chrome.bookmarks.remove(folderId);
@@ -113,7 +129,7 @@ export function FolderWithOperations({
 
   // 双击进入编辑
   const handleDoubleClick = () => {
-    setEditValue(folderName);
+    setEditValue(folderName!);
     setEditing(true);
   };
 
@@ -136,13 +152,21 @@ export function FolderWithOperations({
   };
 
   // 编辑输入键盘事件
-  const handleEditKeyDown = (e) => {
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleEditConfirm();
     } else if (e.key === 'Escape') {
       handleEditCancel();
     }
+  };
+
+  const handleShadowDelete = async () => {
+    // 删除shadow
+    console.info('shadow delete', folderId);
+    await deleteShadow(folderId);
+    // 更新allShadows让当前workspace页面刷新
+    onRefresh?.();
   };
 
   // 自动聚焦编辑输入框
@@ -155,18 +179,18 @@ export function FolderWithOperations({
 
   // 监听 folder-rename 事件
   useEffect(() => {
-    const handleRename = (e) => {
+    const handleRename = (e: CustomEvent<{ folderId: string }>) => {
       if (e.detail?.folderId === folderId) {
-        setEditValue(folderName);
+        setEditValue(folderName!);
         setEditing(true);
       }
     };
-    window.addEventListener('folder-rename', handleRename);
-    return () => window.removeEventListener('folder-rename', handleRename);
+    window.addEventListener('folder-rename', handleRename as EventListener);
+    return () => window.removeEventListener('folder-rename', handleRename as EventListener);
   }, [folderId, folderName]);
 
   // 文件夹顺序
-  const handleFolderMoveUp = async (folderId, parentId) => {
+  const handleFolderMoveUp = async (folderId: string, parentId: string) => {
     const children = await chrome.bookmarks.getChildren(parentId);
     const index = children.findIndex((x) => x.id === folderId);
     console.debug('当前文件夹的index', index);
@@ -175,17 +199,15 @@ export function FolderWithOperations({
         await chrome.bookmarks.move(folderId, {
           index: index - 1,
         });
-      } catch (error) {
-        toast.danger(t('moveFolderFailed'), {
-          description: error.message,
-        });
+      } catch (error: any) {
+        toast.danger(t('moveFolderFailed'), error);
       }
     } else {
       toast.danger(t('moveAlreadyTop'));
     }
   };
 
-  const handleFolderMoveDown = async (folderId, parentId) => {
+  const handleFolderMoveDown = async (folderId: string, parentId: string) => {
     const children = await chrome.bookmarks.getChildren(parentId);
     const index = children.findIndex((x) => x.id === folderId);
     if (index < children.length - 1) {
@@ -193,10 +215,8 @@ export function FolderWithOperations({
         await chrome.bookmarks.move(folderId, {
           index: index + 2,
         });
-      } catch (error) {
-        toast.danger(t('moveFolderFailed'), {
-          description: error.message,
-        });
+      } catch (error: any) {
+        toast.danger(t('moveFolderFailed'), error);
       }
     } else {
       toast.danger(t('moveAlreadyBottom'));
@@ -204,7 +224,7 @@ export function FolderWithOperations({
   };
 
   // 右键菜单
-  const handleContextMenu = useCallback((e) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setMenuPos({ x: e.clientX, y: e.clientY });
@@ -226,17 +246,18 @@ export function FolderWithOperations({
   }, [bookmarks, viewMode, clickCounts]);
 
   // ── 拖拽排序处理 ──
-  const handleDragStart = (e, bookmark) => {
+  const handleDragStart = (e: React.DragEvent<Element>, bookmark: chrome.bookmarks.BookmarkTreeNode) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData(
       'application/bookmark',
       JSON.stringify({
         id: bookmark.id,
-        parentId: bookmark.parentId,
+        parentId: bookmark.parentId || '',
         title: bookmark.title,
         url: bookmark.url,
         sourceFolderId: folderId,
         sourcePath: path,
+        isShadow: (bookmark as any).shadowing || false,
       }),
     );
   };
@@ -247,21 +268,21 @@ export function FolderWithOperations({
   };
 
   // 文件夹组本身作为放置目标（跨文件夹拖拽）
-  const handleGroupDragOver = (e) => {
+  const handleGroupDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
   };
 
-  const handleGroupDragLeave = (e) => {
+  const handleGroupDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     // 只在真正离开容器时设置
-    if (containerRef.current && !containerRef.current.contains(e.relatedTarget)) {
+    if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
       setDragOverIndex(null);
     }
   };
 
-  const handleGroupDrop = async (e) => {
+  const handleGroupDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     setDragOverIndex(null);
@@ -277,11 +298,18 @@ export function FolderWithOperations({
         const currentIndex = bookmarks.findIndex((b) => b.id === data.id);
         if (currentIndex === targetIndex) return;
 
-        // chrome.bookmarks.move 需要目标 parentId 和 index
-        await chrome.bookmarks.move(data.id, {
-          parentId: folderId,
-          index: targetIndex > currentIndex ? targetIndex + 1 : targetIndex,
-        });
+        if (data.isShadow) {
+          await saveShadow(data.id, {
+            parentId: folderId,
+            index: targetIndex > currentIndex ? targetIndex + 1 : targetIndex,
+          });
+        } else {
+          // chrome.bookmarks.move 需要目标 parentId 和 index
+          await chrome.bookmarks.move(data.id, {
+            parentId: folderId,
+            index: targetIndex > currentIndex ? targetIndex + 1 : targetIndex,
+          });
+        }
       } else {
         // 跨文件夹移动
         await chrome.bookmarks.move(data.id, {
@@ -290,21 +318,45 @@ export function FolderWithOperations({
         });
       }
     } catch (err) {
-      console.error('Failed to move bookmark:', err);
+      console.error('Failed to drag bookmark:', err);
     }
   };
 
   // 书签项之间的排序指示
-  const handleItemDragOver = (e, index) => {
+  const handleItemDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverIndex(index);
   };
 
+  // 渲染书签卡片的通用函数
+  const renderBookmarkCard = (bookmark: chrome.bookmarks.BookmarkTreeNode, index: number, isListView: boolean) => {
+    return (
+      <div
+        key={bookmark.id}
+        className='relative'
+        onDragOver={(e) => handleItemDragOver(e, index)}>
+        {dragOverIndex === index && (
+          <div
+            className={`absolute ${isListView ? 'top-0 right-0 left-0 h-0.5 -translate-y-1' : 'top-0 bottom-0 -left-2 w-0.5'} bg-primary-500 z-10 rounded-full`}
+          />
+        )}
+        <BookmarkCard
+          bookmark={bookmark}
+          viewMode={isListView ? 'list' : viewMode}
+          workspaceColor={workspaceColor}
+          draggable
+          onDragStart={(e) => handleDragStart(e, bookmark)}
+          onDragEnd={handleDragEnd}
+        />
+      </div>
+    );
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`my-6 rounded-xl pb-3 transition-colors ${isShadow ? getShadowStyle() : ''} ${isDragOver ? 'bg-primary-500/5 ring-primary-500/20 ring-1' : ''}`}
+      className={`my-6 rounded-xl pb-3 transition-colors ${isShadow ? getShadowStyle() : ''} ${isDragOver ? dragOverClassNames : ''}`}
       onDragOver={handleGroupDragOver}
       onDragLeave={handleGroupDragLeave}
       onDrop={handleGroupDrop}>
@@ -429,58 +481,81 @@ export function FolderWithOperations({
               </Tooltip.Content>
             </Tooltip>
           )}
-
-          <Tooltip delay={300}>
-            <Button
-              onClick={handleDissolve}
-              isIconOnly
-              variant='ghost'
-              className='hover:text-warning-500 hover:bg-warning-50 rounded-md p-1 text-mist-400 transition-colors'>
-              <FolderMinus size={16} />
-            </Button>
-            <Tooltip.Content
-              showArrow
-              placement='bottom'>
-              <Tooltip.Arrow />
-              <div className='max-w-xs px-1 py-1.5'>
-                <p className='mb-1 font-semibold'>{t('dissolveFolder')}</p>
-                <p className='text-muted text-sm'>{t('dissolveFolderHint')}</p>
-              </div>
-            </Tooltip.Content>
-          </Tooltip>
-          <Tooltip delay={300}>
-            <Button
-              onClick={async () => {
-                if (!confirm(t('confirmDeleteFolder'))) return;
-                try {
-                  await chrome.bookmarks.removeTree(folderId);
-                  onRefresh?.();
-                } catch (err) {
-                  console.error('Failed to delete folder:', err);
-                }
-              }}
-              isIconOnly
-              variant='ghost'
-              className='hover:text-danger-500 hover:bg-danger-50 rounded-md p-1 text-mist-400 transition-colors'>
-              <FolderX size={16} />
-            </Button>
-            <Tooltip.Content
-              showArrow
-              placement='bottom'>
-              <Tooltip.Arrow />
-              <div className='max-w-xs px-1 py-1.5'>
-                <p className='mb-1 font-semibold'>{t('deleteFolder')}</p>
-                <p className='text-muted text-sm'>{t('deleteFolderHint')}</p>
-              </div>
-            </Tooltip.Content>
-          </Tooltip>
+          {isShadow && (
+            <Tooltip delay={300}>
+              <Button
+                onClick={handleShadowDelete}
+                isIconOnly
+                variant='ghost'
+                className='hover:text-warning-500 hover:bg-warning-50 rounded-md p-1 text-mist-400 transition-colors'>
+                <FolderMinus size={16} />
+              </Button>
+              <Tooltip.Content
+                showArrow
+                placement='bottom'>
+                <Tooltip.Arrow />
+                <div className='max-w-lg px-1 py-1.5'>
+                  <p className='mb-1 font-semibold'>{t('deleteShadowFolder')}</p>
+                  <p className='text-muted text-sm'>{t('deleteShadowFolderHint')}</p>
+                </div>
+              </Tooltip.Content>
+            </Tooltip>
+          )}
+          {!isShadow && (
+            <Tooltip delay={300}>
+              <Button
+                onClick={handleDissolve}
+                isIconOnly
+                variant='ghost'
+                className='hover:text-warning-500 hover:bg-warning-50 rounded-md p-1 text-mist-400 transition-colors'>
+                <FolderMinus size={16} />
+              </Button>
+              <Tooltip.Content
+                showArrow
+                placement='bottom'>
+                <Tooltip.Arrow />
+                <div className='max-w-xs px-1 py-1.5'>
+                  <p className='mb-1 font-semibold'>{t('dissolveFolder')}</p>
+                  <p className='text-muted text-sm'>{t('dissolveFolderHint')}</p>
+                </div>
+              </Tooltip.Content>
+            </Tooltip>
+          )}
+          {!isShadow && (
+            <Tooltip delay={300}>
+              <Button
+                onClick={async () => {
+                  if (!confirm(t('confirmDeleteFolder'))) return;
+                  try {
+                    await chrome.bookmarks.removeTree(folderId);
+                    onRefresh?.();
+                  } catch (err) {
+                    console.error('Failed to delete folder:', err);
+                  }
+                }}
+                isIconOnly
+                variant='ghost'
+                className='hover:text-danger-500 hover:bg-danger-50 rounded-md p-1 text-mist-400 transition-colors'>
+                <FolderX size={16} />
+              </Button>
+              <Tooltip.Content
+                showArrow
+                placement='bottom'>
+                <Tooltip.Arrow />
+                <div className='max-w-xs px-1 py-1.5'>
+                  <p className='mb-1 font-semibold'>{t('deleteFolder')}</p>
+                  <p className='text-muted text-sm'>{t('deleteFolderHint')}</p>
+                </div>
+              </Tooltip.Content>
+            </Tooltip>
+          )}
           <div className='flex gap-0.5 rounded-lg bg-mist-100 p-0.5 dark:bg-mist-600'>
             <Tooltip delay={300}>
               <Button
                 onClick={() => handleViewModeChange('list')}
                 variant='ghost'
                 isIconOnly
-                className={`rounded-md p-1 transition-colors`}>
+                className={`rounded-md p-1 transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
                 <LayoutList size={16} />
               </Button>
               <Tooltip.Content
@@ -495,7 +570,7 @@ export function FolderWithOperations({
                 onClick={() => handleViewModeChange('grid')}
                 isIconOnly
                 variant='ghost'
-                className={`rounded-md p-1 transition-colors`}>
+                className={`rounded-md p-1 transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
                 <LayoutGrid size={16} />
               </Button>
               <Tooltip.Content
@@ -510,7 +585,7 @@ export function FolderWithOperations({
                 onClick={() => handleViewModeChange('smart')}
                 isIconOnly
                 variant='ghost'
-                className={`rounded-md p-1 transition-colors`}>
+                className={`rounded-md p-1 transition-colors ${viewMode === 'smart' ? 'bg-white shadow-sm dark:bg-mist-500' : ''}`}>
                 <Sparkles size={16} />
               </Button>
               <Tooltip.Content
@@ -561,7 +636,7 @@ export function FolderWithOperations({
                 viewMode='list'
                 workspaceColor={workspaceColor}
                 draggable
-                onDragStart={handleDragStart}
+                onDragStart={(e: any) => handleDragStart(e, bookmark)}
                 onDragEnd={handleDragEnd}
               />
             </div>
@@ -586,7 +661,7 @@ export function FolderWithOperations({
                 viewMode={viewMode}
                 workspaceColor={workspaceColor}
                 draggable
-                onDragStart={handleDragStart}
+                onDragStart={(e: any) => handleDragStart(e, bookmark)}
                 onDragEnd={handleDragEnd}
               />
             </div>
@@ -600,6 +675,7 @@ export function FolderWithOperations({
           y={menuPos.y}
           folderId={folderId}
           folderTitle={folderName}
+          isShadow={isShadow}
           workspaceId={workspaceId}
           onClose={closeMenu}
           onRefresh={onRefresh}

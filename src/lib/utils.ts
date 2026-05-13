@@ -43,7 +43,7 @@ function isValidAlpha(val: unknown): val is number {
   return typeof val === 'number' && !Number.isNaN(val) && val >= 0 && val <= 1;
 }
 
-export function colorToHex(val: HSBAColor | RGBAColor | HSLAColor | string, alpha: number) {
+export function colorToHex(val: HSBAColor | RGBAColor | HSLAColor | string, alpha?: number) {
   if (isHSBAColor(val)) {
     return new TinyColor({
       h: val.hue,

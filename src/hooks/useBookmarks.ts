@@ -1,25 +1,28 @@
 import { useEffect, useState, useRef } from 'react';
 
-export function useBookmarks() {
-  const [bookmarks, setBookmarks] = useState({});
+interface BookmarkHookResult {
+  bookmarks: Record<string, chrome.bookmarks.BookmarkTreeNode[]>;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
+export function useBookmarks(): BookmarkHookResult {
+  const [bookmarks, setBookmarks] = useState<Record<string, chrome.bookmarks.BookmarkTreeNode[]>>({});
   const [loading, setLoading] = useState(true);
-  const debounceRef = useRef(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBookmarks = async () => {
     try {
       const tree = await chrome.bookmarks.getTree();
-      const bar = tree[0].children.find((n) => n.id === '1'); // 书签栏
+      const bar = tree[0].children?.find((n) => n.id === '1');
 
       if (bar && bar.children) {
-        const wsBookmarks = {};
+        const wsBookmarks: Record<string, chrome.bookmarks.BookmarkTreeNode[]> = {};
 
-        // 遍历所有文件夹（workspace）
         for (const folder of bar.children) {
           if (folder.url === undefined) {
-            // 是文件夹
             try {
               const children = await chrome.bookmarks.getChildren(folder.id);
-              // 保留所有子项（包括子文件夹和书签）
               wsBookmarks[folder.id] = children;
             } catch (err) {
               console.error(`Failed to get children for folder ${folder.id}:`, err);
@@ -40,7 +43,6 @@ export function useBookmarks() {
     }
   };
 
-  // 防抖版：多个事件快速触发时只执行一次刷新
   const debouncedFetch = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -52,7 +54,6 @@ export function useBookmarks() {
   useEffect(() => {
     fetchBookmarks();
 
-    // 监听书签变化（防抖）
     if (chrome.bookmarks.onCreated) {
       chrome.bookmarks.onCreated.addListener(debouncedFetch);
       chrome.bookmarks.onRemoved.addListener(debouncedFetch);

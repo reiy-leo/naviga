@@ -40,28 +40,41 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { colorToHex, countEmojis, semanticLength } from '../../lib/utils';
-import { useAppStore } from '../../store/useAppStore';
-import { syncToGithub, restoreFromGithub, testGithubToken } from '../../utils/githubSync';
-import { importBookmarksFromFile } from '../../utils/importBookmarks';
+import { colorToHex, countEmojis, semanticLength } from '@/lib/utils';
+import { useAppStore } from '@/store/useAppStore';
+import {
+  Theme,
+  IconSize,
+  CountryCode,
+  NavbarIconSize,
+  CardRoundSize,
+  UngroupedBookmarkPosition,
+  BackgroundColor,
+  StartupMode,
+  TabDisplay,
+  ShadowStyleColor,
+  ShadowStyleBorder,
+} from '@/types';
+import { syncToGitHub, restoreFromGitHub, testGitHubToken } from '@/utils/githubSync';
+import { importBookmarksFromFile } from '@/utils/importBookmarks';
 
-const navbarIconSizes = ['nbi_sm', 'nbi_base', 'nbi_lg'];
+const navbarIconSizes: NavbarIconSize[] = ['nbi_sm', 'nbi_base', 'nbi_lg'];
 
-const ungroupedBookmarkPositions = ['ungroup_top', 'ungroup_bottom'];
-const ungroupedBookmarkPositionMap = {
+const ungroupedBookmarkPositions: UngroupedBookmarkPosition[] = ['ungroup_top', 'ungroup_bottom'];
+const ungroupedBookmarkPositionMap: Record<UngroupedBookmarkPosition, any> = {
   ungroup_top: <ArrowUpToLine className='h-12 w-12' />,
   ungroup_bottom: <ArrowDownToLine className='h-12 w-12' />,
 };
 
-const cardRoundSizes = ['card_small', 'card_large', 'card_full'];
-const cardRoundSizeMap = {
-  card_small: <div class='h-full w-full rounded-md border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
-  card_large: <div class='h-full w-full rounded-xl border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
-  card_full: <div class='h-full w-full rounded-full border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+const cardRoundSizes: CardRoundSize[] = ['card_small', 'card_large', 'card_full'];
+const cardRoundSizeMap: Record<CardRoundSize, any> = {
+  card_small: <div className='h-full w-full rounded-lg border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+  card_large: <div className='h-full w-full rounded-xl border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
+  card_full: <div className='h-full w-full rounded-full border border-zinc-100 bg-lime-200 dark:bg-zinc-800'></div>,
 };
 
-const THEMES = ['light', 'dark', 'system'];
-const THEMES_ICONS = {
+const THEMES: Theme[] = ['light', 'dark', 'system'];
+const THEMES_ICONS: Record<Theme, any> = {
   light: (
     <Sun
       size={22}
@@ -77,75 +90,57 @@ const THEMES_ICONS = {
   system: (
     <Laptop
       size={22}
-      className='flex-1 text-mist-400'
+      className='flex-1 text-gray-400'
     />
   ),
 };
 
-const BACKGROUNDS = ['default', 'subtle', 'deep', 'blueTint', 'warmTint'];
+const BACKGROUNDS: BackgroundColor[] = ['default', 'subtle', 'deep', 'blueTint', 'warmTint'];
 
-const backgroundStyles = {
+const backgroundStyles: Record<BackgroundColor, string[]> = {
   default: ['bg-swatch-default', 'bg-swatch-default2'],
   subtle: ['bg-swatch-subtle', 'bg-swatch-subtle2'],
   deep: ['bg-swatch-deep', 'bg-swatch-deep2'],
   blueTint: ['bg-swatch-bluetint', 'bg-swatch-bluetint2'],
-  warmTint: ['bg-swatch-warntint', 'bg-swatch-warntint2'],
+  warmTint: ['bg-swatch-warmtint', 'bg-swatch-warmtint2'],
 };
 
-const ICON_SIZES = ['small', 'medium', 'large'];
+const ICON_SIZES: IconSize[] = ['small', 'medium', 'large'];
 
-const ICON_SIZE_ICONS = {
+const ICON_SIZE_ICONS: Record<IconSize, any> = {
   small: (
     <Image
       size={12}
-      className='flex-1 rounded text-mist-400'
+      className='flex-1 rounded text-gray-400'
     />
   ),
   medium: (
     <Image
       size={17}
-      className='flex-1 rounded text-mist-400'
+      className='flex-1 rounded text-gray-400'
     />
   ),
   large: (
     <Image
       size={22}
-      className='flex-1 rounded text-mist-400'
+      className='flex-1 rounded text-gray-400'
     />
   ),
 };
 
-const TAB_DISPLAYS = ['iconOnly', 'textOnly', 'both'];
+const TAB_DISPLAYS: TabDisplay[] = ['iconOnly', 'textOnly', 'both'];
 
-const ON_STARTUPS = ['openHomepage', 'openLastWorkspace', 'openSpecificWorkspace'];
+const ON_STARTUPS: StartupMode[] = ['openHomepage', 'openLastWorkspace', 'openSpecificWorkspace'];
 
-const LANGS = ['zh', 'en', 'ja'];
-const LANG_ICONS = {
-  zh: (
-    <CN
-      className='flex-1 rounded'
-      width={22}
-      height={22}
-    />
-  ),
-  en: (
-    <US
-      className='flex-1 rounded'
-      width={22}
-      height={22}
-    />
-  ),
-  ja: (
-    <JP
-      className='flex-1 rounded'
-      width={22}
-      height={22}
-    />
-  ),
+const LANGS: CountryCode[] = ['zh', 'en', 'ja'];
+const LANG_ICONS: Record<CountryCode, any> = {
+  zh: <CN className='text-sm font-bold' />,
+  en: <US className='text-sm font-bold' />,
+  ja: <JP className='text-sm font-bold' />,
 };
 
-const shadowStyleBorders = ['solid', 'dotted', 'dashed', 'double'];
-const shadowStyleColors = [
+const shadowStyleBorders: ShadowStyleBorder[] = ['solid', 'dotted', 'dashed', 'double'];
+const shadowStyleColors: ShadowStyleColor[] = [
   'red',
   'orange',
   'amber',
@@ -166,7 +161,12 @@ const shadowStyleColors = [
   'slate',
 ];
 
-function SettingsModal({ onClose, defaultTab = 'general' }) {
+interface SettingsModalProps {
+  onClose: () => void;
+  defaultTab?: string;
+}
+
+function SettingsModal({ onClose, defaultTab = 'general' }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [workspaceActiveTab, setWorkspaceActiveTab] = useState('workspaces_general');
   const { t, i18n } = useTranslation();
@@ -192,12 +192,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     initWorkspaces,
     githubPat,
     setGithubPat,
-    githubGistUrl,
-    setGithubGistUrl,
     githubRepoUrl,
     setGithubRepoUrl,
     defaultWorkspaceEmoji,
-    // setDefaultWorkspaceEmoji,
     cardRoundSize,
     setCardRoundSize,
     ungroupedBookmarkPosition,
@@ -208,15 +205,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     setShadowStyleColor,
     shadowStyleBorder,
     setShadowStyleBorder,
-    getShadowStyle,
   } = useAppStore();
 
-  const handleLanguageChange = (lang) => {
-    setLanguage(lang);
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang as CountryCode);
     i18n.changeLanguage(lang);
   };
 
-  const getNavbarIconSize = (opt) => {
+  const getNavbarIconSize = (opt: NavbarIconSize) => {
     return opt.replace('nbi_', 'text-');
   };
 
@@ -227,13 +223,13 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     }
     try {
       const repo = githubRepoUrl && githubRepoUrl.trim() ? githubRepoUrl.trim() : 'https://github.com/reiy-leo/naviga';
-      const result = await testGithubToken(githubPat, repo);
+      const result = await testGitHubToken(githubPat, repo);
       if (result.success) {
-        alert(t('testTokenSuccess') || 'Token 有效，可写入仓库！');
+        alert(t('testTokenSuccess'));
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       const msg = error.message || '';
       let displayMsg = t('testTokenFailed') || 'Token 无效或无法写入仓库';
       if (msg.startsWith('invalidRepoUrl')) displayMsg += ': 无效的仓库 URL';
@@ -244,15 +240,15 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     }
   };
 
-  const handleGithubSync = async () => {
+  const handleGitHubSync = async () => {
     if (!githubPat) {
-      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token');
+      alert(t('configPatAndGistUrl'));
       return;
     }
-    const result = await syncToGithub(githubPat, githubGistUrl || null);
+    const result = await syncToGitHub(githubPat, githubRepoUrl || null);
     if (result.success) {
-      if (result.gistUrl) setGithubGistUrl(result.gistUrl);
-      alert((t('syncSuccess') || '同步成功！\nGist URL: ') + result.gistUrl + '\nGist ID: ' + result.gistId);
+      if (result.gistUrl) setGithubRepoUrl(result.gistUrl);
+      alert(t('syncSuccess') + result.gistUrl + '\nGist ID: ' + result.gistId);
     } else {
       let errorMsg = result.error || '';
       if (errorMsg.startsWith('githubApiError')) {
@@ -262,18 +258,18 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
         const msg = errorMsg.split(':').slice(1).join(':') || '';
         errorMsg = (t('networkError') || '网络错误: ') + msg;
       }
-      alert((t('syncFailed') || '同步失败: ') + errorMsg);
+      alert(t('syncFailed') + errorMsg);
     }
   };
 
-  const handleGithubRestore = async () => {
-    if (!githubPat || !githubGistUrl) {
-      alert(t('configPatAndGistUrl') || '请先配置 Personal Access Token 和 Gist URL');
+  const handleGitHubRestore = async () => {
+    if (!githubPat || !githubRepoUrl) {
+      alert(t('configPatAndGistUrl'));
       return;
     }
-    const result = await restoreFromGithub(githubPat, githubGistUrl);
+    const result = await restoreFromGitHub(githubPat, githubRepoUrl);
     if (result.success) {
-      alert(t('restoreSuccess') || '恢复成功！页面将刷新。');
+      alert(t('restoreSuccess'));
       window.location.reload();
     } else {
       let errorMsg = result.error || '';
@@ -281,9 +277,9 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       else if (errorMsg.startsWith('backupNotFound')) errorMsg = t('backupNotFound') || '备份文件不存在';
       else if (errorMsg.startsWith('githubApiError')) {
         const status = errorMsg.split(':')[1] || 'unknown';
-        errorMsg = (t('githubApiError') || 'GitHub API 错误: ') + status;
+        errorMsg = t('githubApiError') + status;
       }
-      alert((t('restoreFailed') || '恢复失败: ') + errorMsg);
+      alert(t('restoreFailed') + errorMsg);
     }
   };
 
@@ -291,8 +287,8 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
+    input.onchange = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const result = await importBookmarksFromFile(file);
       if (result.success) alert(`成功导入 ${result.count} 个书签`);
@@ -327,12 +323,12 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     URL.revokeObjectURL(url);
   };
 
-  const handleDeleteWorkspace = async (workspaceId) => {
-    if (!confirm(t('confirmDeleteWorkspace') || '确定删除此工作区及其所有内容？')) return;
+  const handleDeleteWorkspace = async (workspaceId: string) => {
+    if (!confirm(t('confirmDeleteWorkspace'))) return;
     try {
       await chrome.bookmarks.removeTree(workspaceId);
       await initWorkspaces();
-    } catch (error) {
+    } catch (error: any) {
       toast.danger(t('deleteWorkspaceFailed'), {
         description: error.message,
       });
@@ -341,6 +337,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
   const handleCreateWorkspace = async () => {
     try {
+      // FIXME 新工作区?
       await chrome.bookmarks.create({ parentId: '1', title: `${defaultWorkspaceEmoji} 新工作区` });
       await initWorkspaces();
     } catch (error) {
@@ -348,18 +345,16 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     }
   };
 
-  const handleWorkspaceOrderUp = async (workspaceId, parentId) => {
+  const handleWorkspaceOrderUp = async (workspaceId: string, parentId: string) => {
     const children = await chrome.bookmarks.getChildren(parentId);
-
-    const index = children.findIndex((x) => x.id === workspaceId);
-
+    const index = children.findIndex((x: chrome.bookmarks.BookmarkTreeNode) => x.id === workspaceId);
     if (index > 0) {
       try {
         await chrome.bookmarks.move(workspaceId, {
           index: index - 1,
         });
         await initWorkspaces();
-      } catch (error) {
+      } catch (error: any) {
         toast.danger('移动workspace失败 up', {
           description: error.message,
         });
@@ -368,18 +363,17 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
       toast.danger('移动workspace失败 up2', {});
     }
   };
-  const handleWorkspaceOrderDown = async (workspaceId, parentId) => {
+
+  const handleWorkspaceOrderDown = async (workspaceId: string, parentId: string) => {
     const children = await chrome.bookmarks.getChildren(parentId);
-
-    const index = children.findIndex((x) => x.id === workspaceId);
-
+    const index = children.findIndex((x: chrome.bookmarks.BookmarkTreeNode) => x.id === workspaceId);
     if (index < children.length - 1) {
       try {
         await chrome.bookmarks.move(workspaceId, {
-          index: index + 2, // +2 真神奇
+          index: index + 2,
         });
         await initWorkspaces();
-      } catch (error) {
+      } catch (error: any) {
         toast.danger('移动workspace失败 down', {
           description: error.message,
         });
@@ -389,7 +383,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
     }
   };
 
-  const presets = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e'];
+  const presets = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
 
   return (
     <Modal>
@@ -403,7 +397,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
           placement='center'
           scroll='inside'>
           <Modal.Dialog className='top-4 h-4/5 min-h-4/5 w-2xl min-w-2xl'>
-            <Modal.CloseTrigger />
+            <Modal.CloseTrigger onPress={onClose} />
             <Modal.Header className=''>
               <Modal.Heading className='mb-3 font-medium'>{t('settings')}</Modal.Heading>
             </Modal.Header>
@@ -414,7 +408,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                 selectedKey={activeTab}
                 variant='secondary'
                 onSelectionChange={(key) => {
-                  setActiveTab(key);
+                  setActiveTab(key as string);
                 }}>
                 <Tabs.ListContainer>
                   <Tabs.List
@@ -446,20 +440,20 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   <div className='mt-4 space-y-6'>
                     {/* Theme */}
                     <div>
-                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('theme')}</Label>
+                      <Label className='mb-4 block text-sm font-medium text-gray-400'>{t('theme')}</Label>
                       <RadioGroup
                         defaultValue={theme}
                         value={theme}
                         name='theme'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setTheme(value);
+                          setTheme(value as Theme);
                         }}>
                         {THEMES.map((opt) => (
                           <Tooltip delay={0}>
                             <Radio
                               value={opt}
-                              className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                              className='data-[selected=true]:bg-accent-soft-hover h-12 w-12 rounded-lg'>
                               <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
                                 {THEMES_ICONS[opt]}
                               </Radio.Content>
@@ -478,14 +472,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                     {/* Background */}
                     <div>
-                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('background')}</Label>
+                      <Label className='mb-4 block text-sm font-medium text-gray-400'>{t('background')}</Label>
                       <RadioGroup
                         defaultValue={background}
                         value={background}
                         name='background'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setBackground(value);
+                          setBackground(value as BackgroundColor);
                         }}>
                         {BACKGROUNDS.map((opt) => (
                           <Radio
@@ -500,14 +494,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                     {/* Tab Display */}
                     <div>
-                      <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('tabDisplay')}</Label>
+                      <Label className='mb-4 block text-sm font-medium text-gray-400'>{t('tabDisplay')}</Label>
                       <RadioGroup
                         defaultValue={tabDisplay}
                         value={tabDisplay}
                         name='tabDisplay'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setTabDisplay(value);
+                          setTabDisplay(value as TabDisplay);
                         }}>
                         {TAB_DISPLAYS.map((opt) => (
                           <Radio value={opt}>
@@ -525,14 +519,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                     {/* On Startup */}
                     <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('onStartup')}</Label>
+                      <Label className='mb-3 block text-sm font-medium text-gray-400'>{t('onStartup')}</Label>
                       <RadioGroup
                         defaultValue={startupMode}
                         value={startupMode}
                         name='startupMode'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setStartupMode(value);
+                          setStartupMode(value as StartupMode);
                         }}>
                         {ON_STARTUPS.map((opt) => (
                           <Radio value={opt}>
@@ -549,12 +543,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         <Select
                           selectionMode='single'
                           isRequired
-                          // variant="secondary"
                           placeholder={t('selectWorkspace')}
                           value={startupWorkspace}
                           defaultValue={startupWorkspace}
                           className='mt-3 w-full'
-                          onChange={(value) => setStartupWorkspace(value)}>
+                          onChange={(value) => setStartupWorkspace(value as string)}>
                           <Select.Trigger>
                             <Select.Value />
                             <Select.Indicator />
@@ -565,12 +558,12 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                                 {t('allFavorites')}
                                 <ListBox.ItemIndicator />
                               </ListBox.Item>
-                              {workspaces.map((ws) => (
+                              {workspaces.map((ws: any) => (
                                 <ListBox.Item
                                   key={ws.id}
                                   id={ws.id}
                                   textValue={wsMeta[ws.id]?.text || ws.title}>
-                                  {ws.emoji || wsMeta[ws.id].emoji} {wsMeta[ws.id]?.text || ws.title}
+                                  {ws.emoji || wsMeta[ws.id]?.emoji} {wsMeta[ws.id]?.text || ws.title}
                                   <ListBox.ItemIndicator />
                                 </ListBox.Item>
                               ))}
@@ -583,7 +576,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                     {/* Language */}
                     <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('language')}</Label>
+                      <Label className='mb-3 block text-sm font-medium text-gray-400'>{t('language')}</Label>
                       <RadioGroup
                         defaultValue={language}
                         value={language}
@@ -593,23 +586,21 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                           handleLanguageChange(value);
                         }}>
                         {LANGS.map((opt) => (
-                          <Radio
-                            value={opt}
-                            className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
-                            <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
-                              <Tooltip
-                                delay={0}
-                                trigger='hover'>
+                          <Tooltip delay={0}>
+                            <Radio
+                              value={opt}
+                              className='data-[selected=true]:bg-accent-soft-hover h-12 w-12 rounded-lg'>
+                              <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
                                 {LANG_ICONS[opt]}
-                                <Tooltip.Content
-                                  showArrow
-                                  placement='top'>
-                                  <Tooltip.Arrow />
-                                  <p>{t(opt)}</p>
-                                </Tooltip.Content>
-                              </Tooltip>
-                            </Radio.Content>
-                          </Radio>
+                              </Radio.Content>
+                            </Radio>
+                            <Tooltip.Content
+                              showArrow
+                              placement='top'>
+                              <Tooltip.Arrow />
+                              <p>{t(opt)}</p>
+                            </Tooltip.Content>
+                          </Tooltip>
                         ))}
                       </RadioGroup>
                     </div>
@@ -618,77 +609,119 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                 </Tabs.Panel>
                 <Tabs.Panel id='data'>
                   <div className='mt-4 space-y-6'>
-                    {/* Import */}
-                    <div>
-                      <h3 className='mb-2 text-sm font-medium'>{t('importBookmarks')}</h3>
-                      <Description>{t('importHint')}</Description>
-                      <Button
-                        variant='bordered'
-                        onPress={handleImportFile}
-                        startContent={<Upload size={16} />}>
-                        {t('selectFile')}
-                      </Button>
-                    </div>
-                    <Separator />
-
-                    {/* GitHub Sync */}
-                    <div>
-                      <h3 className='mb-2 text-sm font-medium'>{t('syncToGithub')}</h3>
-                      <Description>{t('syncHint')}</Description>
-                      <div className='flex flex-col gap-3'>
-                        <Input
-                          type='password'
-                          label='Personal Access Token'
-                          placeholder='ghp_xxxxxxxxxxxx'
-                          value={githubPat}
-                          onValueChange={setGithubPat}
-                        />
-                        <Description>{t('githubTokenHint')}</Description>
-                        <Input
-                          label={t('githubRepoUrl')}
-                          placeholder='https://github.com/reiy-leo/naviga-bookmarks'
-                          value={githubRepoUrl}
-                          onValueChange={setGithubRepoUrl}
-                        />
-                        <Description>{t('githubRepoUrlHint')}</Description>
-                        <div className='flex gap-2'>
-                          <Button
-                            variant='bordered'
-                            onPress={handleTestToken}
-                            startContent={<RefreshCw size={16} />}
-                            className='flex-1'>
-                            {t('testToken')}
-                          </Button>
-                          <Button
-                            color='bordered'
-                            onPress={handleGithubSync}
-                            startContent={<RefreshCw size={16} />}
-                            className='flex-1'>
-                            {t('syncNow')}
-                          </Button>
-                          <Button
-                            variant='bordered'
-                            onPress={handleGithubRestore}
-                            startContent={<Download size={16} />}
-                            className='flex-1'>
-                            {t('restoreFromGithub')}
-                          </Button>
+                    <Tabs variant='secondary'>
+                      <Tabs.ListContainer>
+                        <Tabs.List className='*:w-[unset]'>
+                          <Tabs.Tab id='sync_chrome'>
+                            {t('sync_chrome')}
+                            <Tabs.Indicator />
+                          </Tabs.Tab>
+                          <Tabs.Tab id='sync_github'>
+                            {t('sync_github')}
+                            <Tabs.Indicator />
+                          </Tabs.Tab>
+                          <Tabs.Tab id='sync_manual'>
+                            {t('sync_manual')}
+                            <Tabs.Indicator />
+                          </Tabs.Tab>
+                        </Tabs.List>
+                      </Tabs.ListContainer>
+                      <Tabs.Panel id='sync_chrome'>
+                        <div className='mt-4 space-y-6'>
+                          {/* Chrome Sync */}
+                          <div>
+                            <h3 className='mb-2 text-sm font-medium'>{t('syncFromChrome')}</h3>
+                            <Description>{t('syncChromeHint')}</Description>
+                            <Button
+                              variant='outline'
+                              className='mt-2'>
+                              {t('syncNow')}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className='my-2 border-t border-mist-200' />
+                      </Tabs.Panel>
+                      <Tabs.Panel id='sync_github'>
+                        <div className='mt-4 space-y-6'>
+                          {/* GitHub Sync */}
+                          <div>
+                            <h3 className='mb-2 text-sm font-medium'>{t('syncToGitHub')}</h3>
+                            <Description>{t('syncHint')}</Description>
+                            <div className='flex flex-col gap-3'>
+                              <div>
+                                <Label>{t('githubToken') || 'Personal Access Token'}</Label>
+                                <Input
+                                  type='password'
+                                  placeholder='ghp_xxxxxxxxxxxx'
+                                  value={githubPat}
+                                  onChange={(e) => setGithubPat(e.target.value)}
+                                />
+                              </div>
+                              <Description>{t('githubTokenHint')}</Description>
+                              <div>
+                                <Label>{t('githubRepoUrl')}</Label>
+                                <Input
+                                  placeholder='https://github.com/reiy-leo/naviga-bookmarks'
+                                  value={githubRepoUrl}
+                                  onChange={(e) => setGithubRepoUrl(e.target.value)}
+                                />
+                              </div>
+                              <Description>{t('githubRepoUrlHint')}</Description>
+                              <div className='flex gap-2'>
+                                <Button
+                                  variant='outline'
+                                  onPress={handleTestToken}
+                                  className='flex-1'>
+                                  <RefreshCw size={16} />
+                                  {t('testToken')}
+                                </Button>
+                                <Button
+                                  variant='outline'
+                                  onPress={handleGitHubSync}
+                                  className='flex-1'>
+                                  <RefreshCw size={16} />
+                                  {t('syncNow')}
+                                </Button>
+                                <Button
+                                  variant='outline'
+                                  onPress={handleGitHubRestore}
+                                  className='flex-1'>
+                                  <Download size={16} />
+                                  {t('restoreFromGitHub')}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Tabs.Panel>
+                      <Tabs.Panel id='sync_manual'>
+                        <div className='mt-4 space-y-6'>
+                          {/* Import */}
+                          <div>
+                            <h3 className='mb-2 text-sm font-medium'>{t('importBookmarks')}</h3>
+                            <Description>{t('importHint')}</Description>
+                            <Button
+                              variant='outline'
+                              onPress={handleImportFile}>
+                              <Upload size={16} />
+                              {t('selectFile')}
+                            </Button>
+                          </div>
+                          <Separator />
 
-                    {/* Export */}
-                    <div>
-                      <h3 className='mb-2 text-sm font-medium'>{t('exportData')}</h3>
-                      <p className='mb-3 text-xs text-mist-500'>{t('exportHint')}</p>
-                      <Button
-                        variant='bordered'
-                        onPress={handleExport}
-                        startContent={<Download size={16} />}>
-                        {t('exportNow')}
-                      </Button>
-                    </div>
+                          {/* Export */}
+                          <div>
+                            <h3 className='mb-2 text-sm font-medium'>{t('exportData')}</h3>
+                            <p className='mb-3 text-xs text-gray-500'>{t('exportHint')}</p>
+                            <Button
+                              variant='outline'
+                              onPress={handleExport}>
+                              <Download size={16} />
+                              {t('exportNow')}
+                            </Button>
+                          </div>
+                        </div>
+                      </Tabs.Panel>
+                    </Tabs>
                   </div>
                 </Tabs.Panel>
                 {/* MARK workspaces */}
@@ -698,7 +731,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                       selectedKey={workspaceActiveTab}
                       variant='secondary'
                       onSelectionChange={(key) => {
-                        setWorkspaceActiveTab(key);
+                        setWorkspaceActiveTab(key as string);
                       }}>
                       <Tabs.ListContainer>
                         <Tabs.List
@@ -718,22 +751,21 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         <div className='mt-4 space-y-6'>
                           {/* Icon Size */}
                           <div>
-                            <Label className='mb-4 block text-sm font-medium text-mist-400'>{t('iconSize')}</Label>
+                            <Label className='mb-4 block text-sm font-medium text-gray-400'>{t('iconSize')}</Label>
                             <RadioGroup
                               defaultValue={iconSize}
                               value={iconSize}
                               name='iconSize'
                               orientation='horizontal'
                               onChange={(value) => {
-                                setIconSize(value);
+                                setIconSize(value as IconSize);
                               }}>
                               {ICON_SIZES.map((opt) => (
                                 <Radio
                                   value={opt}
-                                  className='data-[selected=true]:bg-accent/20 h-16 w-16 rounded-lg'>
+                                  className='data-[selected=true]:bg-accent-soft-hover h-16 w-16 rounded-lg'>
                                   <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
                                     {ICON_SIZE_ICONS[opt]}
-                                    {/* <Label className='text-muted-foreground text-xs'>{t(opt)}</Label> */}
                                   </Radio.Content>
                                 </Radio>
                               ))}
@@ -743,19 +775,19 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                           {/* Icon Rounded corner */}
                           <div>
-                            <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('card_corner')}</Label>
+                            <Label className='mb-3 block text-sm font-medium text-gray-400'>{t('card_corner')}</Label>
                             <RadioGroup
                               defaultValue={cardRoundSize}
                               value={cardRoundSize}
                               name='cardRoundSize'
                               orientation='horizontal'
                               onChange={(value) => {
-                                setCardRoundSize(value);
+                                setCardRoundSize(value as CardRoundSize);
                               }}>
                               {cardRoundSizes.map((opt) => (
                                 <Radio
                                   value={opt}
-                                  className='data-[selected=true]:bg-accent/20 h-12 w-12 rounded-lg'>
+                                  className='data-[selected=true]:bg-accent-soft-hover h-12 w-12 rounded-lg'>
                                   <Radio.Content className='flex h-full w-full flex-col items-center gap-2 px-2 py-2'>
                                     <Tooltip
                                       delay={0}
@@ -777,7 +809,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                           {/* navbar 标签大小 */}
                           <div>
-                            <Label className='mb-3 block text-sm font-medium text-mist-400'>
+                            <Label className='mb-3 block text-sm font-medium text-gray-400'>
                               {t('navbar_icon_size')}
                             </Label>
                             <RadioGroup
@@ -786,18 +818,18 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                               name='navbarIconSize'
                               orientation='horizontal'
                               onChange={(value) => {
-                                setNavbarIconSize(value);
+                                setNavbarIconSize(value as NavbarIconSize);
                               }}>
                               {navbarIconSizes.map((opt) => (
                                 <Radio
                                   value={opt}
-                                  className='data-[selected=true]:bg-accent/20 h-12 w-24 rounded-lg'>
+                                  className='data-[selected=true]:bg-accent-soft-hover h-12 w-24 rounded-lg'>
                                   <Radio.Content
                                     className={`flex h-full w-full flex-row items-center gap-2 px-2 py-2 ${getNavbarIconSize(opt)} font-medium`}>
                                     <Tooltip
                                       delay={0}
                                       trigger='hover'>
-                                      <p className='shrink-1'>{defaultWorkspaceEmoji}</p>
+                                      <p className='shrink'>{defaultWorkspaceEmoji}</p>
                                       <p className='flex-1'>{t('workspace')}</p>
                                       <Tooltip.Content
                                         showArrow
@@ -815,14 +847,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
 
                           {/* 未分组 位置 */}
                           <div>
-                            <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('ungroup_pos')}</Label>
+                            <Label className='mb-3 block text-sm font-medium text-gray-400'>{t('ungroup_pos')}</Label>
                             <RadioGroup
                               defaultValue={ungroupedBookmarkPosition}
                               value={ungroupedBookmarkPosition}
                               name='ungroupedBookmarkPosition'
                               orientation='horizontal'
                               onChange={(value) => {
-                                setUngroupedBookmarkPosition(value);
+                                setUngroupedBookmarkPosition(value as UngroupedBookmarkPosition);
                               }}>
                               {ungroupedBookmarkPositions.map((opt) => (
                                 <Radio
@@ -849,18 +881,17 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                       </Tabs.Panel>
                       <Tabs.Panel id='workspaces_colors'>
                         <div className='mt-4 space-y-6'>
-                          {workspaces.map((ws) => {
+                          {workspaces.map((ws: any) => {
                             const meta = wsMeta[ws.id] || {};
                             return (
                               <div
                                 key={ws.id}
-                                className='flex flex-row gap-3 rounded-xl border-zinc-100 bg-mist-50/50 py-3 dark:border-zinc-700 dark:bg-zinc-800/50'>
+                                className='flex flex-row gap-3 rounded-xl border-zinc-100 bg-gray-50/50 py-3 dark:border-zinc-700 dark:bg-zinc-800/50'>
                                 <div className='text-md flex h-9 w-12 shrink-0 items-center justify-end rounded-lg'>
                                   {meta.emoji || defaultWorkspaceEmoji}
                                 </div>
                                 <div className='flex h-10 flex-1 flex-col gap-3'>
                                   <Input
-                                    size='sm'
                                     placeholder={t('workspaceName')}
                                     value={meta.text || ws.title}
                                     onChange={(e) => {
@@ -879,11 +910,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                                       placeholder={defaultWorkspaceEmoji}
                                       value={meta.emoji || ''}
                                       onChange={async (e) => {
-                                        const emojis = e.target.value.trim();
+                                        const emojis = (e.target as HTMLInputElement).value.trim();
                                         const newText = meta.text || ws.title;
                                         const emojiCount = countEmojis(emojis);
                                         if (emojiCount <= 3 && semanticLength(emojis) === emojiCount) {
-                                          updateWsMeta(ws.id, { ...meta, emoji: e.target.value });
+                                          updateWsMeta(ws.id, { ...meta, emoji: (e.target as HTMLInputElement).value });
                                           await chrome.bookmarks.update(ws.id, {
                                             title: `${emojis} ${newText}`,
                                           });
@@ -898,16 +929,16 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                                       className='flex-1 rounded-sm text-sm'
                                     />
                                     <ColorPicker
-                                      defaultValue={colorToHex(meta.color)}
+                                      defaultValue={colorToHex(meta.color!)}
                                       onChange={(color) => {
-                                        updateWsMeta(ws.id, { ...meta, color: colorToHex(color) });
+                                        updateWsMeta(ws.id, { ...meta, color: color.toString('rgba') });
                                       }}
                                       className='flex-1'>
                                       <ColorPicker.Trigger>
                                         <ColorSwatch
                                           size='sm'
                                           shape='square'
-                                          color={colorToHex(meta.color)}
+                                          color={colorToHex(meta.color!)}
                                           className='h-8 w-full rounded-sm'
                                         />
                                       </ColorPicker.Trigger>
@@ -983,8 +1014,8 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                                       variant='ghost'
                                       onPress={() => handleWorkspaceOrderUp(ws.id, '1')}>
                                       <ChevronUp
-                                        className='text-zinc-200 hover:text-zinc-700'
                                         size={16}
+                                        className='text-zinc-200 hover:text-zinc-700'
                                       />
                                     </Button>
                                     <Tooltip.Content
@@ -1017,10 +1048,10 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                             );
                           })}
                           <Button
-                            variant='bordered'
+                            variant='outline'
                             onPress={handleCreateWorkspace}
-                            startContent={<Plus size={16} />}
-                            className='w-full border-2 border-dashed border-mist-300 text-mist-500 hover:border-mist-500 hover:text-mist-700'>
+                            className='w-full border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-500 hover:text-gray-700'>
+                            <Plus size={16} />
                             {t('newWorkspace')}
                           </Button>
                         </div>
@@ -1032,14 +1063,14 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                   <div className='mt-4 space-y-6'>
                     {/* shadow bookmark/folder 样式 */}
                     <div>
-                      <Label className='mb-3 block text-sm font-medium text-mist-400'>{t('shadowStyle')}</Label>
+                      <Label className='mb-3 block text-sm font-medium text-gray-400'>{t('shadowStyle')}</Label>
                       <RadioGroup
                         defaultValue={shadowStyleColor}
                         value={shadowStyleColor}
                         name='shadowStyleColor'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setShadowStyleColor(value);
+                          setShadowStyleColor(value as ShadowStyleColor);
                         }}>
                         {shadowStyleColors.map((opt) => {
                           const color = `bg-${opt}-500/10 border-${opt}-500/60`;
@@ -1047,8 +1078,8 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                           return (
                             <Radio
                               value={opt}
-                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg`}>
-                              <Radio.Content className={`h-10 w-10 rounded-lg ${color} ${border}`}></Radio.Content>
+                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg ${color} ${border}`}>
+                              <Radio.Content className='h-10 w-10 rounded-lg'></Radio.Content>
                             </Radio>
                           );
                         })}
@@ -1060,7 +1091,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         name='shadowStyleBorder'
                         orientation='horizontal'
                         onChange={(value) => {
-                          setShadowStyleBorder(value);
+                          setShadowStyleBorder(value as ShadowStyleBorder);
                         }}>
                         {shadowStyleBorders.map((opt) => {
                           const border = `${opt === 'double' ? 'border-4' : 'border-2'} border-${opt}`;
@@ -1068,8 +1099,8 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                           return (
                             <Radio
                               value={opt}
-                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg`}>
-                              <Radio.Content className={`h-10 w-10 rounded-lg ${border} ${color}`}></Radio.Content>
+                              className={`data-[selected=true]:bg-accent-soft-hover h-12 w-12 place-content-center items-center rounded-lg ${border} ${color}`}>
+                              <Radio.Content className='h-10 w-10 rounded-lg'></Radio.Content>
                             </Radio>
                           );
                         })}
@@ -1085,12 +1116,11 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                         alt='Naviga'
                         className='mx-auto mb-4 h-16 w-16 rounded-xl object-contain'
                       />
-                      <div className='flex max-w-20 flex-col items-center'>
-                        <div className='mb-3 font-medium tracking-wide'>Naviga</div>
-                        <div className='mb-8'>{t('version')} 1.0.0</div>
-                      </div>
                     </div>
-
+                    <div className='flex max-w-xs flex-col items-center'>
+                      <div className='mb-3 font-medium tracking-wide'>Naviga</div>
+                      <div className='mb-8'>{t('version')} 1.0.0</div>
+                    </div>
                     <div className='mx-auto flex max-w-xs flex-row gap-3 *:inline-block'>
                       <Link
                         className='flex-1 gap-1'
@@ -1102,7 +1132,7 @@ function SettingsModal({ onClose, defaultTab = 'general' }) {
                       </Link>
                       <Link
                         className='flex-1 gap-1'
-                        href='hhttps://github.com/reiy-leo/naviga/issues'>
+                        href='https://github.com/reiy-leo/naviga/issues'>
                         {t('reportIssue')}
                         <Link.Icon className='size-3'>
                           <LinkIcon />

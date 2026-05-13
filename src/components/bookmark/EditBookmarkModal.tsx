@@ -3,21 +3,37 @@ import { Trash2, Link2 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 
-function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolderId, onClose, onSave }) {
+interface EditBookmarkModalProps {
+  bookmark?: any;
+  parentBookmark?: any;
+  subBookmark?: any;
+  targetFolderId?: string | null;
+  onClose: () => void;
+  onSave?: () => void;
+}
+
+function EditBookmarkModal({
+  bookmark,
+  parentBookmark,
+  subBookmark,
+  targetFolderId,
+  onClose,
+  onSave,
+}: EditBookmarkModalProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [iconMode, setIconMode] = useState('auto');
   const [iconUrl, setIconUrl] = useState('');
-  const [iconValid, setIconValid] = useState(null);
-  const [iconPreview, setIconPreview] = useState(null);
+  const [iconValid, setIconValid] = useState<boolean | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(true);
   const [mode, setMode] = useState('add');
-  const [existingFaviconUrl, setExistingFaviconUrl] = useState(null);
-  const previewImgRef = useRef(null);
-  const iconDebounceRef = useRef(null);
+  const [existingFaviconUrl, setExistingFaviconUrl] = useState<string | null>(null);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+  const iconDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resolveExistingFavicon = useCallback(() => {
     let rawUrl = null;
@@ -53,21 +69,18 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
 
   useEffect(() => {
     if (subBookmark) {
-      // 编辑子书签
       setTitle(subBookmark.title || '');
       setUrl(subBookmark.url || '');
       setIsNew(false);
       setMode('editSub');
       resolveExistingFavicon();
     } else if (bookmark) {
-      // 新建书签
       setTitle(bookmark.title || '');
       setUrl(bookmark.url || '');
       setIsNew(false);
       setMode('edit');
       resolveExistingFavicon();
     } else if (parentBookmark) {
-      // 添加子书签
       setTitle('');
       setUrl('');
       setIsNew(true);
@@ -90,14 +103,14 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
     }
   }, [bookmark, parentBookmark, subBookmark, resolveExistingFavicon]);
 
-  const validateAndConvertIcon = useCallback(async (url) => {
+  const validateAndConvertIcon = useCallback(async (url: string) => {
     if (!url || !url.trim()) {
       setIconValid(null);
       setIconPreview(null);
       return;
     }
     const trimmed = url.trim();
-    if (!/^https?:\/\/.+/i.test(trimmed)) {
+    if (!/^https?:\/\//i.test(trimmed)) {
       setIconValid(false);
       setIconPreview(null);
       return;
@@ -120,7 +133,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
     img.src = trimmed;
   }, []);
 
-  const handleIconUrlChange = (value) => {
+  const handleIconUrlChange = (value: string) => {
     setIconUrl(value);
     if (iconDebounceRef.current) clearTimeout(iconDebounceRef.current);
     iconDebounceRef.current = setTimeout(() => validateAndConvertIcon(value), 500);
@@ -132,7 +145,6 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
     if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
     try {
       if (mode === 'editSub') {
-        // 编辑子书签
         const { updateSubBookmark } = useAppStore.getState();
         updateSubBookmark(parentBookmark?.id || subBookmark?.parentId, subBookmark.id, {
           title: title.trim() || finalUrl,
@@ -147,7 +159,6 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
           } catch {}
         }
       } else if (mode === 'addSub') {
-        // 新建子书签
         const { addSubBookmark } = useAppStore.getState();
         const parentSubs = useAppStore.getState().subBookmarks[parentBookmark.id] || [];
         if (parentSubs.length >= 5) {
@@ -167,7 +178,6 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
           } catch {}
         }
       } else if (isNew) {
-        // 新建书签
         const parentId = targetFolderId || useAppStore.getState().currentWorkspace;
         await chrome.bookmarks.create({
           parentId,
@@ -251,10 +261,11 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                   fullWidth
                   required
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e: any) => setTitle(e.target.value)}
                 />
               </div>
               <Separator />
+
               <div className='space-y-3'>
                 <Label
                   className='block text-sm text-mist-400'
@@ -268,7 +279,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                   placeholder='https://...'
                   value={url}
                   type='url'
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e: any) => setUrl(e.target.value)}
                 />
               </div>
               <Separator />
@@ -277,7 +288,6 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                 <div className='flex items-center justify-between'>
                   <Label className='block text-sm text-mist-400'>{t('icon')}</Label>
                   <RadioGroup
-                    variant='ghost'
                     className='flex flex-row'
                     value={iconMode}
                     defaultValue={iconMode}
@@ -313,7 +323,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                         src={existingFaviconUrl}
                         alt=''
                         className='h-8 w-8 rounded-md object-contain'
-                        onError={(e) => {
+                        onError={(e: any) => {
                           e.target.style.display = 'none';
                         }}
                       />
@@ -341,14 +351,14 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                       fullWidth
                       value={iconUrl}
                       type='url'
-                      onKeyDown={(e) => {
+                      onKeyDown={(e: any) => {
                         if (e.key === 'Enter') {
                           handleIconUrlChange(e.target.value);
                         } else {
                           setIconUrl(e.target.value);
                         }
                       }}
-                      onChange={(e) => setIconUrl(e.target.value)}
+                      onChange={(e: any) => setIconUrl(e.target.value)}
                     />
                     {iconPreview && (
                       <div className='flex items-center gap-3 rounded-lg bg-mist-50 p-3'>
@@ -385,6 +395,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                 )}
               </div>
             </Modal.Body>
+
             <Modal.Footer className='gap-2 px-6 pb-6'>
               <Button
                 variant='outline'
@@ -394,7 +405,7 @@ function EditBookmarkModal({ bookmark, parentBookmark, subBookmark, targetFolder
                 {t('cancel')}
               </Button>
               <Button
-                color='primary'
+                variant='primary'
                 onPress={() => {
                   handleSave();
                 }}

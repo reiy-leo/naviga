@@ -3,16 +3,31 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { v7 as UUIDv7 } from 'uuid';
 
-import { saveShadow } from '../../db/shadows';
-import { useAppStore } from '../../store/useAppStore';
+import { saveShadow } from '@/db/shadows';
+import { useAppStore } from '@/store/useAppStore';
 
-function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, onComplete, moveType }) {
+interface MoveToWorkspaceModalProps {
+  bookmark: any;
+  title: string;
+  currentWorkspaceId: string;
+  onClose: () => void;
+  onComplete?: () => void;
+  moveType: string;
+}
+
+function MoveToWorkspaceModal({
+  bookmark,
+  title,
+  currentWorkspaceId,
+  onClose,
+  onComplete,
+  moveType,
+}: MoveToWorkspaceModalProps) {
   const { t } = useTranslation();
   const { workspaces, parseWorkspaceTitle } = useAppStore();
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
 
-  // Filter out current workspace
-  const availableWorkspaces = workspaces.filter((ws) => ws.id !== currentWorkspaceId);
+  const availableWorkspaces = workspaces.filter((ws: any) => ws.id !== currentWorkspaceId);
 
   const handleMove = async () => {
     if (!selectedWorkspace || !bookmark?.id) return;
@@ -21,6 +36,7 @@ function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, on
         await chrome.bookmarks.move(bookmark.id, { parentId: selectedWorkspace });
       } else if (moveType === 'shadowBookmark') {
         await saveShadow(UUIDv7(), {
+          ...bookmark,
           shadowing: bookmark.id,
           parentId: selectedWorkspace,
         });
@@ -52,22 +68,22 @@ function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, on
 
             <Modal.Body className='space-y-4 px-6'>
               {availableWorkspaces.length === 0 ? (
-                <div className='py-4 text-center text-sm text-mist-950'>{t('noOtherWorkspace')}</div>
+                <div className='py-4 text-center text-sm text-gray-950'>{t('noOtherWorkspace')}</div>
               ) : (
                 <RadioGroup
-                  onChange={(key) => setSelectedWorkspace(key)}
+                  onChange={(key: string) => setSelectedWorkspace(key)}
                   className='max-h-60 space-y-0.5 overflow-y-auto'>
-                  {availableWorkspaces.map((ws) => {
+                  {availableWorkspaces.map((ws: any) => {
                     const { emoji, text } = parseWorkspaceTitle(ws.title);
                     return (
                       <Radio
                         key={ws.id}
                         value={ws.id}
-                        className='rounded-md px-3 py-3 transition-colors hover:bg-mist-100 data-[selected=true]:bg-sky-200'>
+                        className='rounded-md px-3 py-3 transition-colors hover:bg-gray-100 data-[selected=true]:bg-sky-200'>
                         <div className='flex items-center gap-2'>
                           {emoji && <span>{emoji}</span>}
                           <span className='text-sm'>{text || ws.title}</span>
-                          <span className='text-xs text-mist-400'>({ws.children?.length || 0})</span>
+                          <span className='text-xs text-gray-400'>({ws.children?.length || 0})</span>
                         </div>
                       </Radio>
                     );
@@ -76,7 +92,7 @@ function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, on
               )}
               <p>
                 {t('selectTargetWorkspace')} <span className='inline-block w-3'></span>
-                {selectedWorkspace ? workspaces.find((ws) => ws.id === selectedWorkspace)?.title : ''}
+                {selectedWorkspace ? workspaces.find((ws: any) => ws.id === selectedWorkspace)?.title : ''}
               </p>
             </Modal.Body>
 
@@ -87,7 +103,7 @@ function MoveToWorkspaceModal({ bookmark, title, currentWorkspaceId, onClose, on
                 {t('cancel')}
               </Button>
               <Button
-                color='primary'
+                variant='primary'
                 onPress={handleMove}
                 isDisabled={!selectedWorkspace}>
                 {moveType === 'moveBookmark' && t('move')}

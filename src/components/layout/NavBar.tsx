@@ -2,9 +2,14 @@ import { Button, Tooltip } from '@heroui/react';
 import { Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 
-function NavBar({ onSettingsClick, onLogoClick }) {
+interface NavBarProps {
+  onSettingsClick: () => void;
+  onLogoClick: () => void;
+}
+
+function NavBar({ onSettingsClick, onLogoClick }: NavBarProps) {
   const { workspaces, currentWorkspace, setCurrentWorkspace, tabDisplay, wsMeta, navbarIconSize } = useAppStore();
 
   const navbarItemSize = () => {
@@ -35,9 +40,15 @@ function NavBar({ onSettingsClick, onLogoClick }) {
               onClick={() => setCurrentWorkspace('all')}
               variant='ghost'
               className={`rounded-xl px-4 py-2 font-medium whitespace-nowrap transition-colors ${navbarItemSize()} ${
-                currentWorkspace === 'all' ? 'text-foreground bg-mist-200 dark:bg-mist-100' : 'hover:text-foreground text-mist-500 hover:bg-mist-100'
+                currentWorkspace === 'all'
+                  ? 'text-foreground bg-mist-200 dark:bg-mist-100'
+                  : 'hover:text-foreground text-mist-500 hover:bg-mist-100'
               } `}>
-              {tabDisplay === 'iconOnly' ? '⭐' : tabDisplay === 'textOnly' ? t('allFavorites') : '⭐ ' + t('allFavorites')}
+              {tabDisplay === 'iconOnly'
+                ? '⭐'
+                : tabDisplay === 'textOnly'
+                  ? t('allFavorites')
+                  : '⭐ ' + t('allFavorites')}
             </Button>
             <Tooltip.Content showArrow>
               <Tooltip.Arrow />
@@ -45,7 +56,7 @@ function NavBar({ onSettingsClick, onLogoClick }) {
             </Tooltip.Content>
           </Tooltip>
 
-          {workspaces.map((ws) => {
+          {workspaces.map((ws: any) => {
             const meta = wsMeta[ws.id];
             const emoji = meta?.emoji || '📁';
             const text = meta?.text || ws.title;
@@ -71,11 +82,10 @@ function NavBar({ onSettingsClick, onLogoClick }) {
       </div>
 
       {/* Actions */}
-      <div className='flex flex-0 items-center gap-2'>
+      <div className='flex shrink-0 items-center gap-2'>
         <Tooltip delay={250}>
           <Button
             isIconOnly
-            variant='light'
             onPress={onSettingsClick}
             className='rounded-xl'>
             <Settings size={20} />

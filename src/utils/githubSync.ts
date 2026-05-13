@@ -2,31 +2,51 @@
 
 import { Octokit } from '@octokit/core';
 
+interface SyncData {
+  settings: {
+    theme: string;
+    background: string;
+    iconSize: string;
+    tabDisplay: string;
+    showTabBar: boolean;
+    defaultWorkspace: string;
+    language: string;
+  };
+  clickCounts: Record<string, number>;
+  subBookmarks: Record<string, unknown>;
+  wsMeta: Record<string, unknown>;
+  timestamp: number;
+  version: string;
+}
+
+interface GitHubResponse {
+  success: boolean;
+  gistId?: string;
+  gistUrl?: string;
+  error?: string;
+}
+
 // 从 Gist URL 中提取 Gist ID
-// 支持格式: https://gist.github.com/username/gistId 或纯 gistId
-function extractGistId(urlOrId) {
+function extractGistId(urlOrId: string): string | null {
   if (!urlOrId) return null;
   const trimmed = urlOrId.trim();
-  // 尝试匹配 URL 格式
   const urlMatch = trimmed.match(/gist\.github\.com\/[^\/]+\/([a-f0-9]+)/i);
   if (urlMatch) return urlMatch[1];
-  // 纯 ID 格式 (hex string)
   if (/^[a-f0-9]{20,}$/i.test(trimmed)) return trimmed;
   return null;
 }
 
 // 创建 Octokit 实例
-function createOctokit(token) {
+function createOctokit(token: string): Octokit {
   return new Octokit({ auth: token });
 }
 
 // 上传数据到 GitHub Gist
-export async function syncToGithub(pat, gistUrlOrId = null) {
+export async function syncToGitHub(pat: string, gistUrlOrId: string | null = null): Promise<GitHubResponse> {
   try {
-    const state = window.__NAVIGA_STORE?.getState?.() || {};
+    const state = (window as any).__NAVIGA_STORE?.getState?.() || {};
 
-    // 准备同步数据
-    const syncData = {
+    const syncData: SyncData = {
       settings: {
         theme: state.theme,
         background: state.background,
@@ -44,10 +64,9 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
     };
 
     const octokit = createOctokit(pat);
-    const gistId = extractGistId(gistUrlOrId);
+    const gistId = extractGistId(gistUrlOrId || '');
 
     if (gistId) {
-      // 更新现有 Gist
       const response = await octokit.request('PATCH /gists/{gist_id}', {
         gist_id: gistId,
         files: {
@@ -59,11 +78,10 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
 
       return {
         success: true,
-        gistId: response.data.id,
-        gistUrl: response.data.html_url,
+        gistId: (response.data as any).id,
+        gistUrl: (response.data as any).html_url,
       };
     } else {
-      // 创建新 Gist
       const response = await octokit.request('POST /gists', {
         description: 'Naviga Bookmarks Backup',
         public: false,
@@ -76,11 +94,11 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
 
       return {
         success: true,
-        gistId: response.data.id,
-        gistUrl: response.data.html_url,
+        gistId: (response.data as any).id,
+        gistUrl: (response.data as any).html_url,
       };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('GitHub sync failed:', error);
     const status = error.status || 'unknown';
     return {
@@ -91,7 +109,7 @@ export async function syncToGithub(pat, gistUrlOrId = null) {
 }
 
 // 从 GitHub Gist 恢复数据
-export async function restoreFromGithub(pat, gistUrlOrId) {
+export async function restoreFromGitHub(pat: string, gistUrlOrId: string): Promise<GitHubResponse & { data?: any }> {
   try {
     const gistId = extractGistId(gistUrlOrId);
     if (!gistId) {
@@ -99,21 +117,19 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
     }
 
     const octokit = createOctokit(pat);
-
     const response = await octokit.request('GET /gists/{gist_id}', {
       gist_id: gistId,
     });
 
-    const content = response.data.files['naviga-backup.json']?.content;
+    const content = (response.data as any).files['naviga-backup.json']?.content;
 
     if (!content) {
       return { success: false, error: 'backupNotFound' };
     }
 
     const data = JSON.parse(content);
+    const store = (window as any).__NAVIGA_STORE?.getState?.();
 
-    // 恢复数据到 store
-    const store = window.__NAVIGA_STORE?.getState?.();
     if (store) {
       if (data.settings) {
         store.setTheme(data.settings.theme);
@@ -130,7 +146,7 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
     }
 
     return { success: true, data };
-  } catch (error) {
+  } catch (error: any) {
     console.error('GitHub restore failed:', error);
     const status = error.status || 'unknown';
     return {
@@ -140,10 +156,9 @@ export async function restoreFromGithub(pat, gistUrlOrId) {
   }
 }
 
-// 测试 GitHub Token 是否有读写权限（创建并删除测试文件）
-export async function testGithubToken(pat, repoUrl = 'https://github.com/reiy-leo/naviga') {
+// 测试 GitHub Token 是否有读写权限
+export async function testGitHubToken(pat: string, repoUrl = 'https://github.com/reiy-leo/naviga'): Promise<{ success: boolean; error?: string }> {
   try {
-    // 解析 owner/repo
     const match = repoUrl.match(/github\.com\/([^\/?#]+)\/([^\/?#]+)/);
     if (!match) throw new Error('invalidRepoUrl');
     const owner = match[1];
@@ -151,22 +166,20 @@ export async function testGithubToken(pat, repoUrl = 'https://github.com/reiy-le
 
     const octokit = createOctokit(pat);
 
-    // 1. 验证仓库访问权限（读权限）
     try {
       await octokit.request('GET /repos/{owner}/{repo}', {
         owner,
         repo,
       });
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(`repoAccessFailed:${err.status || 'unknown'}`);
     }
 
-    // 2. 创建测试文件（写权限）
     const testFile = `naviga-write-test-${Date.now()}.txt`;
     const testContent = 'Naviga write permission test';
     const base64 = btoa(testContent);
 
-    let fileSha = null;
+    let fileSha: string | null = null;
     try {
       const createRes = await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
         owner,
@@ -175,12 +188,11 @@ export async function testGithubToken(pat, repoUrl = 'https://github.com/reiy-le
         message: 'Naviga: test write permission',
         content: base64,
       });
-      fileSha = createRes.data.content?.sha;
-    } catch (err) {
+      fileSha = (createRes.data as any).content?.sha;
+    } catch (err: any) {
       throw new Error(`writeFailed:${err.status || 'unknown'}`);
     }
 
-    // 3. 删除测试文件（清理）
     if (fileSha) {
       try {
         await octokit.request('DELETE /repos/{owner}/{repo}/contents/{path}', {
@@ -196,7 +208,7 @@ export async function testGithubToken(pat, repoUrl = 'https://github.com/reiy-le
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('GitHub token test failed:', error);
     return {
       success: false,
